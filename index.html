@@ -1,0 +1,1081 @@
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Document</title>
+	<style>
+		html {
+			-webkit-text-size-adjust: 100%;
+		}
+		body {
+			font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+    			font-size: 14px;
+    			line-height: 1.428571429;
+			color: #fff;
+		}
+		button {
+			color: #fff;
+			font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+			font-size: 14px;
+    			line-height: 1.428571429;
+			border: 1px solid #aaa;
+			border-radius: 5px;
+			width: 75px;
+			height: 25px;
+			vertical-align: middle;
+			text-align:center;
+		}
+		button:hover, .clickedtab {
+			background-color: #aaa;
+			cursor:pointer;
+		}
+		* {
+			background-color: #181818;
+		}
+		.unselectable {
+  			-webkit-user-select: none;
+ 			-moz-user-select: none;
+ 			user-select: none;
+		}
+		#searchInfo {
+			color: white;
+		}
+		#storageCanvas {
+			text-align:center;
+		}
+	</style>
+</head>
+<body onkeypress="kbpress(event)">
+	<table width="100%" cellspacing="0" cellpadding="10" style="overflow-x: auto">
+		<tr>
+			<div style="text-align:center" class="unselectable">
+				<button onclick="changeTab(0)" id="t0" class="clickedtab">Factory</button>
+				<button onclick="changeTab(1)" id="t1">Storage</button>
+				<button onclick="changeTab(2)" id="t2">????????</button>
+				<button onclick="changeTab(3)" id="t3">??????</button>
+			</div>
+		</tr>
+		<tr>
+			<td style="vertical-align: top; width: 350px; word-wrap: break-word;" id="side">
+				<p>Machines</p>
+				<p style="text-align:center"><button style="width: 35px;" onclick="changePage(-1)"> < </button> <span id="page">Page 1</span> <button style="width: 35px" onclick="changePage(1)"> > </button></p>
+				<p style="text-align:center"><canvas id="canvas2" width="320" height="128" onclick="changeMachine()" onmousemove="machinePos(event)"></canvas></p>
+				<p>Name: <span id="name"></span></p>
+				<p>Info: <span id="info"></span></p>
+				<p>Mode: <span id="mode"></span></p>
+				<p>Recipe: <span id="recipe"></span></p>
+				<canvas width="256" height="64" class="unselectable" id="canvas3"></canvas>
+			</td>
+			<br>
+			<div id="search" style="text-align:center">Search: <input type="text" id="searchInfo"></div>
+			<td>
+				<canvas id="canvas" width="768" height="576" class="unselectable" onmousemove="getMousePos(event)" onmouseleave="toggleBuild(false)" onmouseover="toggleBuild(true)">canvas when ded</canvas>
+				<div id="storageCanvas"><canvas id="canvas4" width="432" height="432"></canvas></div>
+			</td>
+			<div id="storagePage" style="text-align:center">
+				<br>
+				<button onclick="changeStoragePage(-1)"><</button>
+				<span id="sPA">1 / 1</span>
+				<button onclick="changeStoragePage( 1)">></button>
+			</div>
+		</tr>
+	</table>
+</body>
+<script>
+//preload vars
+var canvas = document.getElementById("canvas")
+var ctx = canvas.getContext("2d")
+ctx.webkitImageSmoothingEnabled = false;
+ctx.mozImageSmoothingEnabled = false;
+ctx.imageSmoothingEnabled = false;
+var canvas2 = document.getElementById("canvas2")
+var ctx2 = canvas2.getContext("2d")
+ctx2.webkitImageSmoothingEnabled = false;
+ctx2.mozImageSmoothingEnabled = false;
+ctx2.imageSmoothingEnabled = false;
+var canvas3 = document.getElementById("canvas3")
+var ctx3 = canvas3.getContext("2d")
+ctx3.webkitImageSmoothingEnabled = false;
+ctx3.mozImageSmoothingEnabled = false;
+ctx3.imageSmoothingEnabled = false;
+ctx3.textAlign = "center"
+ctx3.textBaseline = "middle"
+var canvas4 = document.getElementById("canvas4")
+var ctx4 = canvas4.getContext("2d")
+ctx4.webkitImageSmoothingEnabled = false;
+ctx4.mozImageSmoothingEnabled = false;
+ctx4.imageSmoothingEnabled = false;
+ctx4.textAlign = "center"
+ctx4.textBaseline = "middle"
+ctx4.font = "4px sans-serif"
+var tile = [0, 0]
+var choose = 0
+var mTile = [0, 0]
+var buildSlot = -1
+var rotationBuild = "w"
+var buildable = false
+var buildSlotPage = 0
+var tab = 0
+var ticks = 0
+var mousePos = {
+	x: 0,
+	y: 0,
+}
+var sprite = {
+	items: new Image(),
+	machines: new Image(),
+	tiles: new Image(),
+	machineCover: new Image()
+}
+sprite.items.src        = "sprites/items.png"
+sprite.machines.src     = "sprites/machines.png"
+sprite.tiles.src        = "sprites/tile.png"
+sprite.machineCover.src = "sprites/cover.png"
+var baseMachines = [
+	{name:"Stone Miner" , width:1, height:1, cost: []                       , iSlots:0, oSlots:1, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:0  , description:"Generates stone."                                           ,topLeft:[0, 0]},
+	{name:"Coal Miner"  , width:1, height:1, cost: [[2 , 8 ]]               , iSlots:0, oSlots:1, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:0  , description:"Generates coal."                                            ,topLeft:[2, 0]},
+	{name:"Copper Miner", width:1, height:1, cost: [[2 , 8 ]]               , iSlots:0, oSlots:1, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:0  , description:"Generates copper ore."                                      ,topLeft:[1, 1]},
+	{name:"Furnace"     , width:1, height:2, cost: [[2 , 10]]               , iSlots:2, oSlots:1, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:0  , description:"Smelts items."                                              ,topLeft:[5, 1]},
+	{name:"Tin Miner"   , width:1, height:1, cost: [[4 , 8 ]]               , iSlots:0, oSlots:1, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:0  , description:"Generates tin ore."                                         ,topLeft:[0, 2]},
+	{name:"Manual Wheel", width:1, height:1, cost: [[11, 5 ]]               , iSlots:0, oSlots:0, maxStack: 0 , maxSlotsPerItem: 1, maxEnergy:4  , description:"Generates power."                ,topLeft:[2, 2]},
+	{name:"Metal Press" , width:1, height:1, cost: [[12, 3 ]]               , iSlots:1, oSlots:1, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:800, description:"Uses power to turn metal into plates, rods, cogs and wires.",topLeft:[1, 3]},
+	{name:"Fabricator"  , width:1, height:1, cost: [[15, 3],[13, 4],[76, 1]], iSlots:4, oSlots:1, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:800, description:"Crafts items automatically"                                 ,topLeft:[3, 3]},
+	{name:"Inputer"     , width:1, height:1, cost: []                       , iSlots:2, oSlots:0, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:0  , description:"Input items into internal storage"                          ,topLeft:[3, 1]},
+	{name:"Outputer"    , width:1, height:1, cost: []                       , iSlots:0, oSlots:1, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:0  , description:"Output items from internal storage (NOT IMPLEMENTED, WON'T WORK)"                         ,topLeft:[4, 0]},
+	{name:"T1 Belt"     , width:1, height:1, cost: []                       , iSlots:1, oSlots:1, maxStack: 1 , maxSlotsPerItem: 1, maxEnergy:0  , description:"A basic belt."                                              ,topLeft:[6, 3]},
+	{name:"Iron Miner"  , width:1, height:1, cost: [[11, 8 ]]               , iSlots:0, oSlots:1, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:0  , description:"Generates iron ore."                                        ,topLeft:[1, 1]},
+	{name:"Zinc Miner"  , width:1, height:1, cost: [[18, 8 ]]               , iSlots:0, oSlots:1, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:0  , description:"Generates zinc ore."                                        ,topLeft:[1, 1]},
+	{name:"Belt Manager", width:1, height:1, cost: [[8 , 1 ]]               , iSlots:3, oSlots:3, maxStack: 1 , maxSlotsPerItem: 3, maxEnergy:0  , description:"Allows for easier belt merging and spliting"                ,topLeft:[4, 2]},
+]
+var recipes = [
+	//format: {input:[[id1,amt1],[id2,amt2]],output:[[id1,amt1],[id2,amt2]],level: l}
+	//level is the tier of cratfer required
+	//level 0 is the normal crafting level
+	{input:[[7 ,2],[6 ,4]], output: [[8 ,1]], level: 0}, //copper mp
+	{input:[[14,2],[13,4]], output: [[15,1]], level: 0}, //tin mp
+	{input:[[21,2],[20,4]], output: [[22,1]], level: 0}, //iron mp
+	{input:[[28,2],[27,4]], output: [[29,1]], level: 0}, //zinc mp
+	{input:[[8 ,2],[5 ,4]], output: [[9 ,1]], level: 0}, //copper strongbox
+	{input:[[15,2],[12,4]], output: [[16,1]], level: 0}, //tin strongbox
+	{input:[[22,2],[19,4]], output: [[23,1]], level: 0}, //iron strongbox
+	{input:[[29,2],[26,4]], output: [[30,1]], level: 0}, //zinc strongbox
+]	
+var items = [
+	{name:"Coal"                      , type: "item" },
+	{name:"Stone"                     , type: "item" },
+	//copper
+	{name:"Copper Ore"                , type: "item" },
+	{name:"Copper Ingot"              , type: "item" },
+	{name:"Copper Plate"              , type: "item" },
+	{name:"Copper Cog"                , type: "item" },
+	{name:"Copper Rod"                , type: "item" },
+	{name:"Copper Mechanical Part"    , type: "item" },
+	{name:"Copper Strongbox"          , type: "item" },
+	//tin
+	{name:"Tin Ore"                   , type: "item" },
+	{name:"Tin Ingot"                 , type: "item" },
+	{name:"Tin Plate"                 , type: "item" },
+	{name:"Tin Cog"                   , type: "item" },
+	{name:"Tin Rod"                   , type: "item" },
+	{name:"Tin Mechanical Part"       , type: "item" },
+	{name:"Tin Strongbox"             , type: "item" },
+	//iron
+	{name:"Iron Ore"                  , type: "item" },
+	{name:"Iron Ingot"                , type: "item" },
+	{name:"Iron Plate"                , type: "item" },
+	{name:"Iron Cog"                  , type: "item" },
+	{name:"Iron Rod"                  , type: "item" },
+	{name:"Iron Mechanical Part"      , type: "item" },
+	{name:"Iron Strongbox"            , type: "item" },
+	//zinc 
+	{name:"Zinc Ore"                  , type: "item" },
+	{name:"Zinc Ingot"                , type: "item" },
+	{name:"Zinc Plate"                , type: "item" },
+	{name:"Zinc Cog"                  , type: "item" },
+	{name:"Zinc Rod"                  , type: "item" },
+	{name:"Zinc Mechanical Part"      , type: "item" },
+	{name:"Zinc Strongbox"            , type: "item" },
+	//crushing 
+	{name:"Gravel"                    , type: "item" },
+	{name:"Copper Dust"               , type: "item" },
+	{name:"Tin Dust"                  , type: "item" },
+	{name:"Iron Dust"                 , type: "item" },
+	{name:"Zinc Dust"                 , type: "item" },
+	//nickel 
+	{name:"Nickel Ore"                , type: "item" },
+	{name:"Nickel Dust"               , type: "item" },
+	{name:"Nickel Ingot"              , type: "item" },
+	{name:"Nickel Plate"              , type: "item" },
+	{name:"Nickel Cog"                , type: "item" },
+	{name:"Nickel Rod"                , type: "item" },
+	{name:"Nickel Mechanical Part"    , type: "item" },
+	{name:"Nickel Strongbox"          , type: "item" },
+	//bronze
+	{name:"Bronze Dust"               , type: "item" },
+	{name:"Bronze Ingot"              , type: "item" },
+	{name:"Bronze Plate"              , type: "item" },
+	{name:"Bronze Cog"                , type: "item" },
+	{name:"Bronze Rod"                , type: "item" },
+	{name:"Bronze Mechanical Part"    , type: "item" },
+	{name:"Bronze Strongbox"          , type: "item" },
+	//constantan
+	{name:"Constantan Dust"           , type: "item" },
+	{name:"Constantan Ingot"          , type: "item" },
+	{name:"Constantan Plate"          , type: "item" },
+	{name:"Constantan Cog"            , type: "item" },
+	{name:"Constantan Rod"            , type: "item" },
+	{name:"Constantan Mechanical Part", type: "item" },
+	{name:"Constantan Strongbox"      , type: "item" },
+	//invar
+	{name:"Invar Dust"                , type: "item" },
+	{name:"Invar Ingot"               , type: "item" },
+	{name:"Invar Plate"               , type: "item" },
+	{name:"Invar Cog"                 , type: "item" },
+	{name:"Invar Rod"                 , type: "item" },
+	{name:"Invar Mechanical Part"     , type: "item" },
+	{name:"Invar Strongbox"           , type: "item" },
+	//wires bc uh oh 
+	{name:"Copper Wire"               , type: "item" },
+	{name:"Tin Wire"                  , type: "item" },
+	{name:"Iron Wire"                 , type: "item" },
+	{name:"Zinc Wire"                 , type: "item" },
+	{name:"Nickel Wire"               , type: "item" },
+	{name:"Bronze Wire"               , type: "item" },
+	{name:"Constantan Wire"           , type: "item" },
+	{name:"Invar Wire"                , type: "item" }, //some of these are unused
+	//fluids and gasses bc why fucking not
+	{name:"Water"                     , type: "fluid"},
+	{name:"Steam"                     , type: "fluid"},
+	{name:"High Pressure Steam"       , type: "fluid"}, //unused
+	{name:"Copper Casing"             , type: "item" },
+	{name:"Storage Module I"	  , type: "item" },
+	{name:"Space Module I"	  	  , type: "item" },
+	//brass
+	{name:"Brass Dust"                , type: "item" },
+	{name:"Brass Ingot"               , type: "item" },
+	{name:"Brass Plate"               , type: "item" },
+	{name:"Brass Cog"                 , type: "item" },
+	{name:"Brass Rod"                 , type: "item" },
+	{name:"Brass Mechanical Part"     , type: "item" },
+	{name:"Brass Strongbox"           , type: "item" },
+]
+var game = {
+	stats: {
+		size: 100,
+		sizeUpgrade: 0,
+		upgrades: JSON.parse(JSON.stringify(Array(baseMachines.length)))
+	},
+	machines: [],
+	storage: {
+		items: Array(items.length+1).fill(0),
+	}
+}
+var entities = []
+
+//functions
+function update() {
+	clear()
+	switch (tab) {
+		case 0: renderFactory() ;break;
+		case 1: renderStorage() ;break;
+		case 2: renderUpgrades();break;
+		case 3: renderQuests()  ;break;
+	}
+	render()
+	build()
+	tick()
+}
+function renderFactory() {
+
+	//unhide
+	canvas.hidden = false
+	document.getElementById("side").hidden = false
+
+	//ground
+	var x=-1
+	while (x++<100) {
+		var y=-1
+		while (y++<100) {
+			ctx.drawImage(sprite.tiles,x*32,y*32)
+		}
+	}
+
+	//machines
+	for (let m in game.machines) {
+		var mach = game.machines[m]
+		var base = baseMachines[mach.idx]
+		var sx = base.topLeft[0]*32, sy = base.topLeft[1]*32
+		var dx = mach.x*32, dy = mach.y*32
+		//belt
+		if (mach.idx == 10) {
+			var binary = ["a","w","s","d"]
+			var mod = binary.indexOf(mach.direction) 
+			ctx.drawImage(sprite.machines, sx+floor(mod/2)*32, sy+mod%2*32, 32, 32, dx, dy, 32, 32)
+			continue;
+		}
+
+		//not belt
+		ctx.drawImage(sprite.machines, sx, sy, base.width*32, base.height*32, dx, dy, base.width*32, base.height*32)
+	}
+	
+	//entities
+	for (let en in entities) {
+		ctx.drawImage(sprite.items,0,entities[en].idx*16-16,16,16,entities[en].x-8,entities[en].y-8,16,16)
+	}
+	entities = []
+
+	//highlight
+	if (buildSlot+1&&buildable) {
+		//if (max(tile[0],tile[1])<game.stats.size) 
+		ctx.fillStyle = build(true)?"#0f03":"#f003"
+		ctx.fillRect(tile[0]*32, tile[1]*32, baseMachines[buildSlot].width*32, baseMachines[buildSlot].height*32)
+	}
+
+	//to bluid (canvas 2)
+	document.getElementById("page").textContent = "Page " + (buildSlotPage+1)
+	ctx2.drawImage(sprite.machineCover,0,0)
+	ctx2.fillStyle = "#0f03"
+	if (buildSlotPage*40-1<=buildSlot<buildSlotPage*40+39) ctx2.fillRect(((1+buildSlot%40)%10)*32,Math.floor((1+buildSlot%40)/10)*32, 32, 32)
+	//info (canvas 3)
+	//ctx3.drawImage()
+
+	//info text
+	var blckd = blocked(tile[0], tile[1], 1, 1)-1
+	var target = game.machines[blckd]
+	var toInfo = target?target.idx:buildSlot
+	document.getElementById("info").textContent = ""
+	document.getElementById("info").textContent = (baseMachines[toInfo]||{description:""}).description
+	document.getElementById("mode").textContent = ["Plates","Rods","Cogs","Wires",""][(target||{mode: 4}).mode]
+	document.getElementById("recipe").textContent = ""
+	if (target) {
+		if (target.recipe != undefined) {	
+			document.getElementById("recipe").textContent = items[recipes[target.recipe].output[0][0]-1].name
+		}
+	}
+	document.getElementById("name").textContent = (baseMachines[toInfo]||{name:""}).name
+}
+function renderStorage() {
+	document.getElementById("search").hidden = false
+	document.getElementById("storagePage").hidden = false
+	document.getElementById("storageCanvas").hidden = false
+	canvas4.hidden = false
+	ctx4.scale(3,3)
+	var y = 0
+	while (++y<10) {
+		var x = 0
+		while (++x<10) {
+			var idx = y*9+x-10
+			ctx4.fillStyle = "#555";ctx4.fillRect(x*16-16,y*16-16,16,16)
+			ctx4.fillStyle = "#777";ctx4.fillRect(x*16-15,y*16-15,14,14)
+			ctx4.drawImage(sprite.items,0,idx*16,16,16,x*16-16,y*16-16,16,16)
+			ctx4.fillStyle = "#fff"
+		}
+	}
+	y = 0
+	while (++y<10) {
+		var x = 0
+		while (++x<10) {
+			var idx = y*9+x-10
+			ctx4.fillText(format(game.storage.items[idx]),x*16-8,y*16)
+		}
+	}
+	ctx4.resetTransform()
+}
+function renderUpgrades() {}
+function renderQuests() {}
+function render() {}
+function clear() {
+	ctx.clearRect(0,0,800,600)
+	canvas.hidden = true
+	document.getElementById("search").hidden = true
+	document.getElementById("storagePage").hidden = true
+	document.getElementById("side").hidden = true
+	document.getElementById("storageCanvas").hidden = true
+}
+function saveGame() {
+
+}
+function loadGame() {
+
+}
+function Machine(idx) {
+	this.input = JSON.parse(JSON.stringify(Array(64).fill([0,0])))
+	this.output = JSON.parse(JSON.stringify(Array(64).fill([0,0])))
+	this.x = 0
+	this.y = 0
+	this.idx = idx
+	this.energy = 0
+	this.maxEnergy = baseMachines[idx].maxEnergy
+	this.inputSlots = baseMachines[idx].iSlots
+	this.outputSlots = baseMachines[idx].oSlots
+	this.maxSlotsPerItem = baseMachines[idx].maxSlotsPerItem
+	this.maxStack = baseMachines[idx].maxStack
+	this.time = 0
+	this.outputable = function (item) {
+		var k = -1
+		while (++k<this.outputSlots) {
+			if ((this.output[k][0] == item[0] && this.output[k][1] + item[1] <= this.maxStack)||(!this.output[k][0] && item[1] <= this.maxStack)) {
+				return k+1
+			}
+		}
+		return 0
+	}
+	this.outputPush = function (item) {
+		var n = this.outputable(item)
+		if (!n) return 1
+		this.output[n-1][0] = item[0]
+		this.output[n-1][1] += item[1]
+	}
+	this.inputDelete = function (item) {
+		var k = -1
+		while (++k<this.inputSlots) {
+			if (this.input[k][0] == item[0]) {
+				this.input[k][1] -= item[1]
+			}
+			if (this.input[k][1]<=0) this.input[k] = [0,0]
+		}
+	}
+	this.inputable = function (item) {
+		var k = -1
+		var taken = Array(items.length).fill(0)
+		while (++k<this.inputSlots) {
+			taken[this.input[k][0]]++
+			if ((this.input[k][0] == item[0] && this.input[k][1]+item[1] <= this.maxStack && taken[this.input[k][0]]<=this.maxSlotsPerItem)||(!this.input[k][0] && item[1] <= this.maxStack)) {
+				return k+1
+			}
+		}
+		return 0
+	}
+	this.maxInputable = function (idx) {
+		var slot = this.inputable([idx,0])
+		if (!slot) return 0
+		return this.maxStack - this.input[slot-1][1]
+	}
+	this.inputPush = function (item) {
+		var n = this.inputable(item)
+		if (n) {
+			this.input[n-1][0]  = item[0]
+			this.input[n-1][1] += item[1]
+		}
+	}
+	this.outputDelete = function (item) {
+		var k = -1
+		while (++k<this.outputSlots) {
+			if (this.output[k][0] == item[0]) {
+				this.output[k][1] -= item[1]
+			}
+			if (this.output[k][1]<1) this.output[k] = [0,0]
+		}
+	}
+	this.maxOutputable = function (idx) {
+		var slot = this.outputable([idx,0])
+		if (!slot) return 0
+		return this.output[slot-1][1]
+	}
+	this.energySend = function (amt,target) {
+		var toSend = min(target.maxEnergy-target.energy, this.energy, amt)
+		target.energy += toSend
+		this.energy -= toSend
+	}
+	this.addEnergy = function (amt) {
+		this.energy = min(this.energy+amt, this.maxEnergy)
+	}
+	this.subEnergy = function (amt) {
+		this.energy = Math.max(0, this.energy - amt)
+	}
+	switch (idx) {
+		case 0:
+			this.func = function() {
+				if (this.time >= 50) {
+					this.outputPush([2,floor(this.time/50)])
+					this.time %= 50
+				}
+			}
+		break;
+		case 1:
+			this.func = function() {
+				if (this.time >= 50) {
+					this.outputPush([1,floor(this.time/50)])
+					this.time %= 50
+				}
+			}
+		break;
+		case 2:
+			this.func = function() {
+				if (this.time >= 50) {
+					this.outputPush([3,floor(this.time/50)])
+					this.time %= 50
+				}
+			}
+		break;
+		case 3:
+			this.recipes = [
+				{"input":[[1, 1],[3 , 1]],"output":[[4 , 1]]}, //input / output
+				{"input":[[1, 1],[10, 1]],"output":[[11, 1]]},
+				{"input":[[1, 1],[17, 1]],"output":[[18, 1]]},
+				{"input":[[1, 1],[24, 1]],"output":[[25, 1]]},
+			]
+			this.process = function () {
+				for (let p1 in this.recipes) {
+					var able = Array(this.recipes[p1].input.length).fill(0)
+					for (let p2 in this.input) {
+						for (let p3 in this.recipes[p1].input) {
+							//what the fuck // checks if the slot is enough for crafting
+							able[p3] = (this.input[p2][0] == this.recipes[p1].input[p3][0] && this.input[p2][1] >= this.recipes[p1].input[p3][1])||able[p3]
+						}
+					}
+					if (able.reduce((a,b) => a*b)) {
+						var stop = false
+						for (let o in this.recipes[p1].output) {
+							var n = this.outputable(this.recipes[p1].output[o])
+							if (!n) {
+								stop = true 
+								break
+							}
+							this.outputPush(this.recipes[p1].output[o])
+						}
+						if (stop) continue
+						for (let i in this.recipes[p1].input) {
+							this.inputDelete(this.recipes[p1].input[i])
+						}
+						break;
+					}
+				}
+			}
+			this.func = function() {
+				if (this.time >= 20) {
+					this.process()
+					this.time %= 20
+				}
+			}
+		break;
+		case 4:
+			this.func = function() {
+				if (this.time >= 50) {
+					this.outputPush([10,floor(this.time/50)])
+					this.time %= 50
+				}
+			}
+		break;
+		case 5:
+			this.func = function() {
+				//if (this.x == tile[0] && this.y == tile[1]) this.addEnergy(4)
+				this.addEnergy(4)
+				var targets = [
+					blocked(this.x+1, this.y  , 1, 1)-1,
+					blocked(this.x-1, this.y  , 1, 1)-1,
+					blocked(this.x  , this.y+1, 1, 1)-1,
+					blocked(this.x  , this.y-1, 1, 1)-1,
+				]
+				for (let t in targets) {
+					var toSend = game.machines[targets[t]]
+					if (toSend) this.energySend(4, toSend)
+				}
+			}
+		break;
+		case 6:
+			this.mode = 0 //0 = plate, 1 = rods, 2 = cogs, 3 = wires
+			this.recipes = [
+				[
+					{"input":[[4,1]],"output":[[5,1]],"level":0},
+					{"input":[[11,1]],"output":[[12,1]],"level":0},
+					{"input":[[18,1]],"output":[[19,1]],"level":0},	
+					{"input":[[25,1]],"output":[[26,1]],"level":0},
+				],
+				[
+					{"input":[[4,1]],"output":[[7,2]],"level":0},
+					{"input":[[11,1]],"output":[[14,2]],"level":0},
+					{"input":[[18,1]],"output":[[21,2]],"level":0},
+					{"input":[[25,1]],"output":[[28,2]],"level":0},
+				],
+				[
+					{"input":[[4,2]],"output":[[6,1]],"level":0},
+					{"input":[[11,2]],"output":[[13,1]],"level":0},
+					{"input":[[18,2]],"output":[[20,1]],"level":0},
+					{"input":[[25,2]],"output":[[27,1]],"level":0},
+				],
+				[
+					{"input":[[4,1]],"output":[[65,5]],"level":0},
+					{"input":[[11,1]],"output":[[14,5]],"level":0},
+					{"input":[[18,1]],"output":[[21,5]],"level":0},
+					{"input":[[25,1]],"output":[[28,5]],"level":0},
+
+				],
+			]
+			this.process = function () {
+				for (let p1 in this.recipes[this.mode]) {
+					var able = Array(this.recipes[this.mode][p1].input.length).fill(0)
+					for (let p2 in this.input) {
+						for (let p3 in this.recipes[this.mode][p1].input) {
+							//what the fuck // checks if the slot is enough for crafting
+							able[p3] = (this.input[p2][0] == this.recipes[this.mode][p1].input[p3][0] && this.input[p2][1] >= this.recipes[this.mode][p1].input[p3][1])||able[p3]
+						}
+					}
+					if (able.reduce((a,b) => a*b)) {
+						var stop = false
+						for (let o in this.recipes[this.mode][p1].output) {
+							var n = this.outputable(this.recipes[this.mode][p1].output[o])
+							if (!n) {
+								stop = true 
+								break
+							}
+							this.outputPush(this.recipes[this.mode][p1].output[o])
+						}
+						if (stop) continue
+						for (let i in this.recipes[this.mode][p1].input) {
+							this.inputDelete(this.recipes[this.mode][p1].input[i])
+						}
+						this.subEnergy(100)
+						break;
+					}
+				}
+			}
+			this.func = function() {
+				if (this.time >= 20) {
+					if (this.energy>=100) {
+						this.process()
+					}
+					this.time %= 20
+				}
+			}
+		break;
+		case 7:
+			this.recipe = 0
+			this.process = function () {
+				var able = Array(recipes[this.recipe].input.length).fill(0)
+				for (let p2 in this.input) {
+					for (let p3 in recipes[this.recipe].input) {
+						//what the fuck // checks if the slot is enough for crafting
+						able[p3] = (this.input[p2][0] == recipes[this.recipe].input[p3][0] && this.input[p2][1] >= recipes[this.recipe].input[p3][1])||able[p3]
+					}
+				}
+				if (able.reduce((a,b) => a*b)) {
+					var stop = false
+					for (let o in recipes[this.recipe].output) {
+						var n = this.outputable(recipes[this.recipe].output[o])
+						if (!n) {
+							stop = true 
+							break
+						}
+						this.outputPush(recipes[this.recipe].output[o])
+					}
+					for (let i in recipes[this.recipe].input) {
+						if (stop) break
+						this.inputDelete(recipes[this.recipe].input[i])
+					}
+					if (!stop) this.subEnergy(150)
+				}
+			}
+			this.func = function() {
+				if (this.time >= 20) {
+					if (this.energy>=150) {
+						this.process()
+					}
+					this.time %= 20
+				}
+			}
+
+		break;
+		case 8:
+			this.func = function() {
+				if (this.time>=5) {
+					for (let k in this.input) {
+						if (this.input[k][0] && this.input[k][1]) {
+							game.storage.items[this.input[k][0]]++
+							this.inputDelete([this.input[k][0],1])
+							break;
+						}
+					}
+					this.time %= 5 
+				}
+			}
+		break;
+		case 10:
+		this.direction = rotationBuild
+			this.ioed = true
+			this.outputed = true
+			this.inputed = true
+			this.func = conveyor(25)		
+		break;
+		case 11:
+			this.func = function() {
+				if (this.time >= 50) {
+					this.outputPush([17,floor(this.time/50)])
+					this.time %= 50
+				}
+			}
+		break;
+		case 12:
+			this.func = function() {
+				if (this.time >= 50) {
+					this.outputPush([24,floor(this.time/50)])
+					this.time %= 50
+				}
+			}
+		break;
+		case 13:
+			this.func = function() {
+				//target to input
+				var toIO, k = -1
+				while (++k < this.inputSlots) {
+					if (this.input[k][0]!=0) toIO = this.input[k].slice()
+				}
+				if (!toIO) return
+
+				//outputable check + output
+				var output = this.outputPush(toIO)
+				if (output) return
+
+				//clear input
+				this.inputDelete(toIO)
+				this.ioed = true
+			}
+		break;
+	}
+}
+function Entity() {
+	this.x = 0
+	this.y = 0
+	this.idx = 0
+}
+function build(check) {
+	if (!buildable) return 0
+	if (mouseDown[1]) {
+		var place = blocked(tile[0], tile[1], 1, 1)-1
+		console.log(place)
+		buildSlot = (game.machines[place]||{idx:-1}).idx
+	}
+	if (!(buildSlot+1)) return 0
+	if (mouseDown[0]||check) {
+		if (blocked(tile[0],tile[1],baseMachines[buildSlot].width,baseMachines[buildSlot].height)) return 0
+		var toBuild = new Machine(buildSlot)
+		toBuild.x = tile[0]
+		toBuild.y = tile[1]
+		toBuild.direction = rotationBuild
+		if (check) return 1
+		game.machines.push(toBuild)
+	}
+	if (mouseDown[2]) {
+		var toDelete = blocked(tile[0],tile[1],1,1)
+		if (!toDelete) return 0
+		toDelete--
+		var mTD = game.machines[toDelete]
+		for (let k in mTD.input ) {game.storage.items[mTD.input[k][0] ] += mTD.input[k][1] ;if(k*1+1>mTD.inputSlots )break}
+		for (let k in mTD.output) {game.storage.items[mTD.output[k][0]] += mTD.output[k][1];if(k*1+1>mTD.outputSlots)break}
+		game.machines.splice(toDelete, 1)
+	}
+}
+function blocked(x, y, w, h) {
+	var isBlocked = false
+	var outOfBounds = false
+	var blockedBy = 0
+
+	//out of bounds check
+	//create blocked space
+	var awm = -1
+	while (++awm<w) {
+		var ahm = -1
+		while (++ahm<h) {
+			var p = [x+awm,y+ahm]
+			//conq[p[0]][p[1]] = 1
+			//out of bounds check
+			outOfBounds = outOfBounds || (p[0]>=game.stats.size||p[1]>=game.stats.size)
+		}
+	}
+	if (outOfBounds) return Infinity
+	// find blocked space
+	/*for (let m in game.machines) {
+		var wm = -1
+		var width = baseMachines[game.machines[m].idx].width
+		var height = baseMachines[game.machines[m].idx].height
+		while (++wm<width&&!blockedBy) {
+			var hm = -1
+			while (++hm<height&&!blockedBy) {
+				var k = [game.machines[m].x+wm,game.machines[m].y+hm]
+				if (conq[k[0]][k[1]]) blockedBy = m*1+1
+			}
+		}
+		if (blockedBy) break
+	}*/
+	for (let m in game.machines) {
+		var mach = game.machines[m]
+		var base = baseMachines[mach.idx]
+		if (aabb(mach.x, mach.y, base.width, base.height, x, y, w, h)) {
+			blockedBy = m*1+1
+			break
+		}
+	}
+	return blockedBy	
+}
+function tick() {
+
+	//machine tick
+	var belts = [], t
+	for (let m in game.machines) {
+		game.machines[m].time++
+		//if (game.machines[m].idx == 10) {belts.push(game.machines[m]);continue}
+		game.machines[m].func()
+	}
+	t = Math.ceil(belts.length**0.4)
+	while (t--) {
+		for (let b in belts) {
+			belts[b].func()
+			if (!belts[b].outputed&&!belts[b].ioed&&!belts[b].inputed) belts.splice(b,1)
+		}
+	}
+	/*for (let b in belts) {
+		belts[b].inputed = true 
+		belts[b].outputed = true 
+		belts[b].ioed = true 
+	}*/
+	ticks++
+}
+function conveyor(tpe) {
+	return function() {
+		if (this.time >= tpe) {
+			this.time %= tpe
+			this.ioed = false
+			this.outputed = false
+			this.inputed = false
+		}
+
+		//input, opposite = input
+		var cx = 0
+		var cy = 0
+		switch (this.direction) {
+			case "w": cy = 1;break;
+			case "a": cx = -1;break;
+			case "s": cy = -1;break;
+			case "d": cx = 1 ;break;
+		}
+
+		//push output first bc it just works
+		while (!this.outputed)  {
+			// find item to push
+			var toPush, k = -1
+			while (++k < this.outputSlots) {
+				if (this.output[k][0]!=0) toPush = this.output[k].slice()
+			}
+
+			//no item to push
+			if (!toPush) break
+
+			//checks if there is a target
+			var target = blocked(this.x-cx,this.y-cy,1,1)
+
+			//target not found
+			if (!target) break
+			target = game.machines[target-1]
+					
+			//check if you can push
+			toPush[1] = min(target.maxInputable(toPush[0]), this.maxOutputable(toPush[0]))
+
+			//push
+			target.inputPush(toPush)
+
+			//clean output
+			this.outputDelete(toPush)
+			this.outputed = true
+		}
+
+		// input -> output conversion
+		while (!this.ioed) {
+			//target to input
+			var toIO, k = -1
+			while (++k < this.inputSlots) {
+				if (this.input[k][0]!=0) toIO = this.input[k].slice()
+			}
+			if (!toIO) break
+
+			//outputable check + output
+			var output = this.outputPush(toIO)
+			if (output) break
+
+			//clear input
+			this.inputDelete(toIO)
+			this.ioed = true
+		}
+			
+		//input read
+		while (!this.inputed) {
+
+			//target shenanigans //correct 
+			var target = blocked(this.x+cx,this.y+cy,1,1)
+			if (!target) break
+			target = game.machines[target-1]
+			if (target.idx == 10) break
+
+			//slot to output
+			var toPull, k = -1
+			while (++k < target.outputSlots) {
+				if (target.output[k][0]!=0) toPull = target.output[k].slice()
+			}
+			if (!toPull) break
+
+			var transfer = [toPull[0],min(target.maxOutputable(toPull[0]), this.maxInputable(toPull[0]))]
+			if (transfer[1] == 0) break
+			//input
+			this.inputPush(transfer)
+
+			//clear
+			target.outputDelete(transfer)
+			this.inputed = true
+		}
+	
+		//create entities to render
+		var i=-1,o=-1
+
+		//input
+		while (++i<this.inputSlots) {
+
+			//id to render
+			var ent = new Entity()
+			ent.idx = this.input[i][0]
+			if (ent.idx == 0) break
+
+			//center
+			var pos = [this.x*32+16,this.y*32+16]
+
+			//direction shift
+			pos[0] += cx*16
+			pos[1] += cy*16
+
+			//index shift
+			pos[0] -= cx*32/(this.inputSlots+this.outputSlots)*i
+			pos[1] -= cy*32/(this.inputSlots+this.outputSlots)*i
+
+			//launch preparation :trollgod:
+			ent.x = pos[0]
+			ent.y = pos[1]
+
+			entities.push(ent)
+		}
+		
+		//output
+		while (++o<this.outputSlots) {
+
+			//id to render
+			var ent = new Entity()
+			ent.idx = this.output[o][0]
+			if (ent.idx == 0) break
+
+			//center
+			var pos = [this.x*32+16,this.y*32+16]
+
+			//direction shift
+			pos[0] += cx*16
+			pos[1] += cy*16
+
+			//index shift
+			pos[0] -= cx*32/(this.inputSlots+this.outputSlots)*(o+this.inputSlots)
+			pos[1] -= cy*32/(this.inputSlots+this.outputSlots)*(o+this.inputSlots)
+
+			//launch preparation :trollgod:
+			ent.x = pos[0]
+			ent.y = pos[1]
+
+			entities.push(ent)
+		} //input 
+	}
+}
+//function inputStorage(item) {}
+//other/utils functions
+function max() {var a = arguments,c=-Infinity;for (let b in a) {c=Math.max(c,a[b])}return c}
+function min() {var a = arguments,c= Infinity;for (let b in a) {c=Math.min(c,a[b])}return c}
+function floor(a) {return Math.floor(a)}
+function getMousePos(e) {
+	var r = canvas.getBoundingClientRect()
+	mousePos = {
+		x: e.clientX - r.left,
+		y: e.clientY - r.top
+	}
+	tile = [floor(mousePos.x/32), floor(mousePos.y/32)]
+}
+function toggleBuild(k) {
+	buildable = k
+	if (!k) mouseDown = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+}
+function changeTab(k) {
+	var maxTabs = 3, n = -1
+	while (n++<3) {
+		document.getElementById("t"+n).className = ""
+	}
+	if (tab == k) tab = 0
+	else tab = k
+	document.getElementById("t"+tab).className = "clickedtab"
+}
+function changePage(n) {
+	var maxPages = Math.ceil(baseMachines.length/40)
+	var page = (page+n) % maxPages
+}
+function machinePos(e) {
+	var r = canvas2.getBoundingClientRect()
+	var mousePos2 = {
+		x: e.clientX - r.left,
+		y: e.clientY - r.top
+	}
+	mTile = [floor(mousePos2.x/32), floor(mousePos2.y/32)]
+}
+function changeMachine() {
+	buildSlot = buildSlotPage*40+mTile[1]*10+mTile[0]-1
+}
+function aabb(x1,y1,w1,h1,x2,y2,w2,h2) {
+	return x1<x2+w2&&x1+w1>x2&&y1<y2+h2&&y1+h1>y2
+}
+function format(n,type) {
+	var formatThing = ["","K","M","G","T","P"]
+	switch (type) {
+		case "exact":
+			var digitAfter = 3, combined = (n+"").split(""), length = combined.length
+			while (digitAfter < length) {
+				combined.splice(length-digitAfter,0,",")
+				digitAfter += 3
+			}
+			return combined.join("")
+		break;
+		case "metric": var formatThing = ["","K","M","G","T","P"];break;
+	}
+	if (n < 1000) return n
+	var exp = Math.floor(Math.log10(n)/3)
+	var mantissa = n/(10**(exp*3))
+	return mantissa.toFixed(2)+formatThing[exp]
+
+}
+//stackoverflow check key down thing
+var pressedKeys = {};
+window.onkeyup = function(e) { pressedKeys[e.keyCode] = false; }
+window.onkeydown = function(e) { pressedKeys[e.keyCode] = true; }
+
+//mous
+var mouseDown = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+document.body.onmousedown=function(evt){mouseDown[evt.button]=1}
+document.body.onmouseup=function(evt){mouseDown[evt.button]=0}
+
+//right click dumb prevention
+canvas.oncontextmenu=function(e){e.preventDefault();e.stopPropagation()}
+function kbpress(e) {
+	if (e.key.toLowerCase() == "r") {
+		var toRotate = blocked(tile[0], tile[1], 1, 1) - 1
+		if (toRotate+1) {
+			game.machines[toRotate].direction = ["w","a","s","d"][(["w","a","s","d"].indexOf(game.machines[toRotate].direction)+1)%4]
+			return
+		}
+		rotationBuild = ["w","a","s","d"][(["w","a","s","d"].indexOf(rotationBuild)+1)%4]
+	}
+	if (e.key.toLowerCase() == "t") {
+		console.log(2)
+		var toChange = blocked(tile[0], tile[1], 1, 1) - 1
+		if (toChange + 1) {
+			var target = game.machines[toChange]
+			console.log(target)
+			switch (target.idx) {
+				case 6: target.mode = (target.mode+1)%4;break;
+				case 7: target.recipe = (target.recipe+1)%recipes.length;break;
+			}
+		}
+	}
+}
+setInterval(update,20)
+</script>
+</html>
