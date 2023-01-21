@@ -1,0 +1,119 @@
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Recipes</title>
+</head>
+<body>
+<button onclick="changeMode()">Change Mode:</button>
+<div id="recipeI">Recipes that takes: <input type="text" id="inputCheck" value=""></div>
+<div id="recipeO">Recipes that makes: <input type="text" id="outputCheck" value=""></div>
+<div id="itemID">Item name: <input type="text" id="ID" value=""></div>
+<span id="IDs"></span>
+<br>
+<div id="cn0">Primitive Furnace Recipes:</div>
+<span id="r0"></span>
+<div id="cn1">Anvil Recipes:</div>
+<span id="r1"></span>
+<div id="cn2">Workstation Recipes:</div>
+<span id="r2"></span>
+<div id="cn3">Boiler Recipes:</div>
+<span id="r3"></span>
+<div id="cn4">Compressor Recipes:</div>
+<span id="r4"></span>
+<div id="cn5">Furnace Recipes:</div>
+<span id="r5"></span>
+<div id="cn6">Crusher Recipes:</div>
+<span id="r6"></span>
+<div id="cn7">Assembler Recipes:</div>
+<span id="r7"></span>
+<div id="cn8">Cutter Recipes:</div>
+<span id="r8"></span>
+<div id="cn9">Ore Washer Recipes:</div>
+<span id="r9"></span>
+</body>
+<script src="functions.js" type="text/javascript"></script>
+<script src="variables.js" type="text/javascript"></script>
+<script>
+var mode = 0
+var tempsoleLog = console.log
+function update() {
+	var t = -1
+	while (t++ < 9) {
+		document.getElementById("cn"+t).hidden = true
+		document.getElementById("r"+t).hidden = true
+	}
+	document.getElementById("recipeI").hidden = true
+	document.getElementById("recipeO").hidden = true
+	document.getElementById("itemID").hidden = true
+	document.getElementById("IDs").hidden = true
+	switch (mode) {
+		case 0: updateRecipes();break; //recipes
+		case 1: updateItemID();break;
+	}
+}
+function updateRecipes() {
+	var allowInput = document.getElementById("inputCheck").value
+	var allowOutput = document.getElementById("outputCheck").value
+	var t = -1
+	while (t++ < 9) {
+		document.getElementById("cn"+t).hidden = false
+		document.getElementById("r"+t).hidden = false
+		document.getElementById("r"+t).innerHTML = ""
+	}
+	document.getElementById("recipeI").hidden = false
+	document.getElementById("recipeO").hidden = false
+	console.log("ITEMS THAT DOESNT EXIST YET:")
+	for (let r in recipes) {
+		for (let s in recipes[r]) {
+			var addRecipe = [false, false]
+			var textI = [], textO = [], text = "CN " + (s*1+1) + ": "
+			for (let i in recipes[r][s].in) {
+				addRecipe[0] = addRecipe[0]||(recipes[r][s].in[i][0].toLowerCase().indexOf(allowInput.toLowerCase()) != -1 || allowInput == "")
+				textI.push(recipes[r][s].in[i][1] + " " + recipes[r][s].in[i][0])
+				if (items[recipes[r][s].in[i][0]] == undefined) console.log(recipes[r][s].in[i][0])
+			}
+			for (let o in recipes[r][s].out) {
+				addRecipe[1] = addRecipe[1]||(recipes[r][s].out[o][0].toLowerCase().indexOf(allowOutput.toLowerCase()) != -1 || allowOutput == "")
+				textO.push(recipes[r][s].out[o][1] + " " + recipes[r][s].out[o][0])
+				if (items[recipes[r][s].out[o][0]] == undefined) console.log(recipes[r][s].out[o][0])
+				else items[recipes[r][s].out[o][0]].hasRecipe = true
+			}
+			if (!(addRecipe[0] && addRecipe[1])) continue
+			text += textI.join(" + ") + " -> " + textO.join(" + ")
+			document.getElementById("r" + r).innerHTML += text + " <br>"
+		}
+	}
+	console.log("ITEMS THAT DOESNT HAVE A RECIPE:")
+	var blacklist = ["Stone","Wood Log","Water","Oil","Natural Gas","Workstation", "template"]
+	var ores = ["Copper","Chalcopyrite","Salt","Rock Salt","Iron","Magnetite","Pyrite","Bauxite","Aluminium","Rutile","Zinc","Sphalerite","Magnesite","Lead","Galena","Silver","Color","Tin","Cassiterite","Barite","Coal","Graphite"]
+	for (let o in ores) {
+		blacklist.push(ores[o] + " Ore")
+		blacklist.push("Crushed " + ores[o] + " Ore")
+		blacklist.push(ores[o] + " Dust")
+	}
+	for (let k in items) {
+		if (blacklist.indexOf(k) != -1) continue
+		if (items[k].hasRecipe == undefined) console.log(k)
+	}
+	console.log = function(){}
+}
+function changeMode() {
+	mode++
+	mode %= 2
+}
+function updateItemID() {
+	document.getElementById("itemID").hidden = false
+	document.getElementById("IDs").hidden = false
+	document.getElementById("IDs").innerHTML = ""
+	var n = 0
+	for (let k in items) {
+		n++
+		if (k.toLowerCase().indexOf(document.getElementById("ID").value) == -1) continue
+		document.getElementById("IDs").innerHTML += "ID " + n + ": " + k + " <br>"
+	}
+}
+setInterval(update,10)
+</script>
+</html>

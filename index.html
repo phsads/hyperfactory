@@ -3,1079 +3,866 @@
 	<meta charset="UTF-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Document</title>
+	<link rel="icon" type="image/x-icon" href="favicon.png">
+	<title>HyperFactory</title>
 	<style>
-		html {
-			-webkit-text-size-adjust: 100%;
-		}
-		body {
-			font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
-    			font-size: 14px;
-    			line-height: 1.428571429;
-			color: #fff;
-		}
-		button {
-			color: #fff;
-			font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
-			font-size: 14px;
-    			line-height: 1.428571429;
-			border: 1px solid #aaa;
-			border-radius: 5px;
-			width: 75px;
-			height: 25px;
-			vertical-align: middle;
-			text-align:center;
-		}
-		button:hover, .clickedtab {
-			background-color: #aaa;
-			cursor:pointer;
-		}
-		* {
-			background-color: #181818;
-		}
-		.unselectable {
-  			-webkit-user-select: none;
- 			-moz-user-select: none;
- 			user-select: none;
-		}
-		#searchInfo {
-			color: white;
-		}
-		#storageCanvas {
-			text-align:center;
-		}
+	canvas { 
+    		image-rendering: optimizeSpeed;             /*                     */
+    		image-rendering: -moz-crisp-edges;          /* Firefox             */
+    		image-rendering: -o-crisp-edges;            /* Opera               */
+    		image-rendering: -webkit-optimize-contrast; /* Chrome (and Safari) */
+    		image-rendering: pixelated;                 /* Chrome as of 2019   */
+    		image-rendering: optimize-contrast;         /* CSS3 Proposed       */
+    		-ms-interpolation-mode: nearest-neighbor;   /* IE8+                */
+    	}
+	.red {
+		color: #f00;
+	}
+	.green {
+		color: #0f0;
+	}
+	.bold {
+		font-weight: bolder;
+		text-decoration: underline;
+	}
+	* {
+		color: white
+	}
+	body {
+		background-color: black;
+	}
+	.helphelp {
+  		-webkit-user-select: none; /* Safari */
+  		-ms-user-select: none; /* IE 10 and IE 11 */
+		user-select: none; /* Standard syntax */
+	}
+	</style>
+	<style id="invBold">
 	</style>
 </head>
-<body onkeypress="kbpress(event)">
-	<table width="100%" cellspacing="0" cellpadding="10" style="overflow-x: auto">
-		<tr>
-			<div style="text-align:center" class="unselectable">
-				<button onclick="changeTab(0)" id="t0" class="clickedtab">Factory</button>
-				<button onclick="changeTab(1)" id="t1">Storage</button>
-				<button onclick="changeTab(2)" id="t2">????????</button>
-				<button onclick="changeTab(3)" id="t3">??????</button>
-			</div>
-		</tr>
-		<tr>
-			<td style="vertical-align: top; width: 350px; word-wrap: break-word;" id="side">
-				<p>Machines</p>
-				<p style="text-align:center"><button style="width: 35px;" onclick="changePage(-1)"> < </button> <span id="page">Page 1</span> <button style="width: 35px" onclick="changePage(1)"> > </button></p>
-				<p style="text-align:center"><canvas id="canvas2" width="320" height="128" onclick="changeMachine()" onmousemove="machinePos(event)"></canvas></p>
-				<p>Name: <span id="name"></span></p>
-				<p>Info: <span id="info"></span></p>
-				<p>Mode: <span id="mode"></span></p>
-				<p>Recipe: <span id="recipe"></span></p>
-				<canvas width="256" height="64" class="unselectable" id="canvas3"></canvas>
-			</td>
-			<br>
-			<div id="search" style="text-align:center">Search: <input type="text" id="searchInfo"></div>
-			<td>
-				<canvas id="canvas" width="768" height="576" class="unselectable" onmousemove="getMousePos(event)" onmouseleave="toggleBuild(false)" onmouseover="toggleBuild(true)">canvas when ded</canvas>
-				<div id="storageCanvas"><canvas id="canvas4" width="432" height="432"></canvas></div>
-			</td>
-			<div id="storagePage" style="text-align:center">
-				<br>
-				<button onclick="changeStoragePage(-1)"><</button>
-				<span id="sPA">1 / 1</span>
-				<button onclick="changeStoragePage( 1)">></button>
-			</div>
-		</tr>
-	</table>
+<body onkeypress="move(event)" style="text-align:center" id="body" onload="loadGame()">
+	<canvas onmousemove="getMousePos(event)" width="800" height="600" id="canvas"></canvas>
+	<div style="min-width: 1000px;" class="helphelp">
+		<span id="lo1">N</span><span id="lo2">E</span><span id="lo3">S</span><span id="lo4">W</span>
+		<span id="displayInfo"></span>
+	</div>
+	<div class="helphelp">Inventory:
+		<span id="inv1">-</span> |
+		<span id="inv2">-</span> |
+		<span id="inv3">-</span> |	
+		<span id="inv4">-</span> |
+		<span id="inv5">-</span> |
+		<span id="inv6">-</span> |
+		<span id="inv7">-</span> |
+		<span id="inv8">-</span> |
+		<span id="inv9">-</span>
+	</div>
 </body>
+<script src="functions.js" type="text/javascript"></script>
+<script src="variables.js" type="text/javascript"></script>
 <script>
-//preload vars
 var canvas = document.getElementById("canvas")
 var ctx = canvas.getContext("2d")
-ctx.webkitImageSmoothingEnabled = false;
-ctx.mozImageSmoothingEnabled = false;
-ctx.imageSmoothingEnabled = false;
-var canvas2 = document.getElementById("canvas2")
-var ctx2 = canvas2.getContext("2d")
-ctx2.webkitImageSmoothingEnabled = false;
-ctx2.mozImageSmoothingEnabled = false;
-ctx2.imageSmoothingEnabled = false;
-var canvas3 = document.getElementById("canvas3")
-var ctx3 = canvas3.getContext("2d")
-ctx3.webkitImageSmoothingEnabled = false;
-ctx3.mozImageSmoothingEnabled = false;
-ctx3.imageSmoothingEnabled = false;
-ctx3.textAlign = "center"
-ctx3.textBaseline = "middle"
-var canvas4 = document.getElementById("canvas4")
-var ctx4 = canvas4.getContext("2d")
-ctx4.webkitImageSmoothingEnabled = false;
-ctx4.mozImageSmoothingEnabled = false;
-ctx4.imageSmoothingEnabled = false;
-ctx4.textAlign = "center"
-ctx4.textBaseline = "middle"
-ctx4.font = "4px sans-serif"
-var tile = [0, 0]
-var choose = 0
-var mTile = [0, 0]
-var buildSlot = -1
-var rotationBuild = "w"
-var buildable = false
-var buildSlotPage = 0
-var tab = 0
-var ticks = 0
-var mousePos = {
-	x: 0,
-	y: 0,
+var baseGame = {
+	map: {}, // key (a;b) is the chunk, each chunk is 9x9; world is 450x450
+	x: intRandom(0,430), //camera xy
+	y: intRandom(0,435),
+	inventory: [[],[],[],[],[],[],[],[],[]], //inventory
+	inventorySlot: 1,
+	harvestProgress: 0,
+	ioControl: 0,
+	logicControl: 0,
+	workstationCooldown: 0,
+	time: 0,
+	blocks: {},
+	cursorMode: 0, //0: mining, 1: place and destroy, 2: modify logic, 3: modify circuit number, 4: extract/insert
 }
-var sprite = {
-	items: new Image(),
-	machines: new Image(),
-	tiles: new Image(),
-	machineCover: new Image()
-}
-sprite.items.src        = "sprites/items.png"
-sprite.machines.src     = "sprites/machines.png"
-sprite.tiles.src        = "sprites/tile.png"
-sprite.machineCover.src = "sprites/cover.png"
-var baseMachines = [
-	{name:"Stone Miner" , width:1, height:1, cost: []                       , iSlots:0, oSlots:1, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:0  , description:"Generates stone."                                           ,topLeft:[0, 0]},
-	{name:"Coal Miner"  , width:1, height:1, cost: [[2 , 8 ]]               , iSlots:0, oSlots:1, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:0  , description:"Generates coal."                                            ,topLeft:[2, 0]},
-	{name:"Copper Miner", width:1, height:1, cost: [[2 , 8 ]]               , iSlots:0, oSlots:1, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:0  , description:"Generates copper ore."                                      ,topLeft:[1, 1]},
-	{name:"Furnace"     , width:1, height:2, cost: [[2 , 10]]               , iSlots:2, oSlots:1, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:0  , description:"Smelts items."                                              ,topLeft:[5, 1]},
-	{name:"Tin Miner"   , width:1, height:1, cost: [[4 , 8 ]]               , iSlots:0, oSlots:1, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:0  , description:"Generates tin ore."                                         ,topLeft:[0, 2]},
-	{name:"Manual Wheel", width:1, height:1, cost: [[11, 5 ]]               , iSlots:0, oSlots:0, maxStack: 0 , maxSlotsPerItem: 1, maxEnergy:4  , description:"Generates power."                ,topLeft:[2, 2]},
-	{name:"Metal Press" , width:1, height:1, cost: [[12, 3 ]]               , iSlots:1, oSlots:1, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:800, description:"Uses power to turn metal into plates, rods, cogs and wires.",topLeft:[1, 3]},
-	{name:"Fabricator"  , width:1, height:1, cost: [[15, 3],[13, 4],[76, 1]], iSlots:4, oSlots:1, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:800, description:"Crafts items automatically"                                 ,topLeft:[3, 3]},
-	{name:"Inputer"     , width:1, height:1, cost: []                       , iSlots:2, oSlots:0, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:0  , description:"Input items into internal storage"                          ,topLeft:[3, 1]},
-	{name:"Outputer"    , width:1, height:1, cost: []                       , iSlots:0, oSlots:1, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:0  , description:"Output items from internal storage (NOT IMPLEMENTED, WON'T WORK)"                         ,topLeft:[4, 0]},
-	{name:"T1 Belt"     , width:1, height:1, cost: []                       , iSlots:1, oSlots:1, maxStack: 1 , maxSlotsPerItem: 1, maxEnergy:0  , description:"A basic belt."                                              ,topLeft:[6, 3]},
-	{name:"Iron Miner"  , width:1, height:1, cost: [[11, 8 ]]               , iSlots:0, oSlots:1, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:0  , description:"Generates iron ore."                                        ,topLeft:[1, 1]},
-	{name:"Zinc Miner"  , width:1, height:1, cost: [[18, 8 ]]               , iSlots:0, oSlots:1, maxStack: 20, maxSlotsPerItem: 1, maxEnergy:0  , description:"Generates zinc ore."                                        ,topLeft:[1, 1]},
-	{name:"Belt Manager", width:1, height:1, cost: [[8 , 1 ]]               , iSlots:3, oSlots:3, maxStack: 1 , maxSlotsPerItem: 3, maxEnergy:0  , description:"Allows for easier belt merging and spliting"                ,topLeft:[4, 2]},
-]
-var recipes = [
-	//format: {input:[[id1,amt1],[id2,amt2]],output:[[id1,amt1],[id2,amt2]],level: l}
-	//level is the tier of cratfer required
-	//level 0 is the normal crafting level
-	{input:[[7 ,2],[6 ,4]], output: [[8 ,1]], level: 0}, //copper mp
-	{input:[[14,2],[13,4]], output: [[15,1]], level: 0}, //tin mp
-	{input:[[21,2],[20,4]], output: [[22,1]], level: 0}, //iron mp
-	{input:[[28,2],[27,4]], output: [[29,1]], level: 0}, //zinc mp
-	{input:[[8 ,2],[5 ,4]], output: [[9 ,1]], level: 0}, //copper strongbox
-	{input:[[15,2],[12,4]], output: [[16,1]], level: 0}, //tin strongbox
-	{input:[[22,2],[19,4]], output: [[23,1]], level: 0}, //iron strongbox
-	{input:[[29,2],[26,4]], output: [[30,1]], level: 0}, //zinc strongbox
-]	
-var items = [
-	{name:"Coal"                      , type: "item" },
-	{name:"Stone"                     , type: "item" },
-	//copper
-	{name:"Copper Ore"                , type: "item" },
-	{name:"Copper Ingot"              , type: "item" },
-	{name:"Copper Plate"              , type: "item" },
-	{name:"Copper Cog"                , type: "item" },
-	{name:"Copper Rod"                , type: "item" },
-	{name:"Copper Mechanical Part"    , type: "item" },
-	{name:"Copper Strongbox"          , type: "item" },
-	//tin
-	{name:"Tin Ore"                   , type: "item" },
-	{name:"Tin Ingot"                 , type: "item" },
-	{name:"Tin Plate"                 , type: "item" },
-	{name:"Tin Cog"                   , type: "item" },
-	{name:"Tin Rod"                   , type: "item" },
-	{name:"Tin Mechanical Part"       , type: "item" },
-	{name:"Tin Strongbox"             , type: "item" },
-	//iron
-	{name:"Iron Ore"                  , type: "item" },
-	{name:"Iron Ingot"                , type: "item" },
-	{name:"Iron Plate"                , type: "item" },
-	{name:"Iron Cog"                  , type: "item" },
-	{name:"Iron Rod"                  , type: "item" },
-	{name:"Iron Mechanical Part"      , type: "item" },
-	{name:"Iron Strongbox"            , type: "item" },
-	//zinc 
-	{name:"Zinc Ore"                  , type: "item" },
-	{name:"Zinc Ingot"                , type: "item" },
-	{name:"Zinc Plate"                , type: "item" },
-	{name:"Zinc Cog"                  , type: "item" },
-	{name:"Zinc Rod"                  , type: "item" },
-	{name:"Zinc Mechanical Part"      , type: "item" },
-	{name:"Zinc Strongbox"            , type: "item" },
-	//crushing 
-	{name:"Gravel"                    , type: "item" },
-	{name:"Copper Dust"               , type: "item" },
-	{name:"Tin Dust"                  , type: "item" },
-	{name:"Iron Dust"                 , type: "item" },
-	{name:"Zinc Dust"                 , type: "item" },
-	//nickel 
-	{name:"Nickel Ore"                , type: "item" },
-	{name:"Nickel Dust"               , type: "item" },
-	{name:"Nickel Ingot"              , type: "item" },
-	{name:"Nickel Plate"              , type: "item" },
-	{name:"Nickel Cog"                , type: "item" },
-	{name:"Nickel Rod"                , type: "item" },
-	{name:"Nickel Mechanical Part"    , type: "item" },
-	{name:"Nickel Strongbox"          , type: "item" },
-	//bronze
-	{name:"Bronze Dust"               , type: "item" },
-	{name:"Bronze Ingot"              , type: "item" },
-	{name:"Bronze Plate"              , type: "item" },
-	{name:"Bronze Cog"                , type: "item" },
-	{name:"Bronze Rod"                , type: "item" },
-	{name:"Bronze Mechanical Part"    , type: "item" },
-	{name:"Bronze Strongbox"          , type: "item" },
-	//constantan
-	{name:"Constantan Dust"           , type: "item" },
-	{name:"Constantan Ingot"          , type: "item" },
-	{name:"Constantan Plate"          , type: "item" },
-	{name:"Constantan Cog"            , type: "item" },
-	{name:"Constantan Rod"            , type: "item" },
-	{name:"Constantan Mechanical Part", type: "item" },
-	{name:"Constantan Strongbox"      , type: "item" },
-	//invar
-	{name:"Invar Dust"                , type: "item" },
-	{name:"Invar Ingot"               , type: "item" },
-	{name:"Invar Plate"               , type: "item" },
-	{name:"Invar Cog"                 , type: "item" },
-	{name:"Invar Rod"                 , type: "item" },
-	{name:"Invar Mechanical Part"     , type: "item" },
-	{name:"Invar Strongbox"           , type: "item" },
-	//wires bc uh oh 
-	{name:"Copper Wire"               , type: "item" },
-	{name:"Tin Wire"                  , type: "item" },
-	{name:"Iron Wire"                 , type: "item" },
-	{name:"Zinc Wire"                 , type: "item" },
-	{name:"Nickel Wire"               , type: "item" },
-	{name:"Bronze Wire"               , type: "item" },
-	{name:"Constantan Wire"           , type: "item" },
-	{name:"Invar Wire"                , type: "item" }, //some of these are unused
-	//fluids and gasses bc why fucking not
-	{name:"Water"                     , type: "fluid"},
-	{name:"Steam"                     , type: "fluid"},
-	{name:"High Pressure Steam"       , type: "fluid"}, //unused
-	{name:"Copper Casing"             , type: "item" },
-	{name:"Storage Module I"	  , type: "item" },
-	{name:"Space Module I"	  	  , type: "item" },
-	//brass
-	{name:"Brass Dust"                , type: "item" },
-	{name:"Brass Ingot"               , type: "item" },
-	{name:"Brass Plate"               , type: "item" },
-	{name:"Brass Cog"                 , type: "item" },
-	{name:"Brass Rod"                 , type: "item" },
-	{name:"Brass Mechanical Part"     , type: "item" },
-	{name:"Brass Strongbox"           , type: "item" },
-]
-var game = {
-	stats: {
-		size: 100,
-		sizeUpgrade: 0,
-		upgrades: JSON.parse(JSON.stringify(Array(baseMachines.length)))
-	},
-	machines: [],
-	storage: {
-		items: Array(items.length+1).fill(0),
-	}
-}
-var entities = []
-
-//functions
-function update() {
-	clear()
-	switch (tab) {
-		case 0: renderFactory() ;break;
-		case 1: renderStorage() ;break;
-		case 2: renderUpgrades();break;
-		case 3: renderQuests()  ;break;
-	}
-	render()
-	build()
-	tick()
-}
-function renderFactory() {
-
-	//unhide
-	canvas.hidden = false
-	document.getElementById("side").hidden = false
-
-	//ground
-	var x=-1
-	while (x++<100) {
-		var y=-1
-		while (y++<100) {
-			ctx.drawImage(sprite.tiles,x*32,y*32)
+//blocks data:
+//power: current power
+//maxPower: max power
+//powerConsumption: max power consumption (for overclocks and stuffs)
+//isSteam: is a steam machine (if yes then it will consumes input steam and turn it into a power)
+//isPrimitive: will generate power (for itself) if left click is held
+//machineType: recipes woohoo (if it's negative then it has special behavior)
+//CN: circuit number
+//ticksRunning: number of ticks that it has run a recipe
+//in: [] <= input
+//out: [] <= output
+//name: name
+//overclock: overclock efficiency) (overclock increases energy consumption by 4x and makes it this value faster, overclock happens automatically)
+var game = {}
+function addItem(name, amount) {
+	var slot = game.inventory[game.inventorySlot]
+	if (slot[0] == name) {
+		if (slot[1] + amount <= 64) {
+			game.inventory[game.inventorySlot][1] += amount
+			return true
 		}
+		return false
+	} else if (slot[0] == undefined) {
+		game.inventory[game.inventorySlot] = [name, amount]
+		return true
 	}
+	return false
+}
+function addToMachines(machinePos,item,amount,inputOrOutput, limitlessInput) {
+	//limitlessInput allows input of multiple slots at once
+	var b = game.blocks[machinePos]
+	for (let bl in b[inputOrOutput]) {
+		var slotInfo = b[inputOrOutput][bl], amountToInsert
 
-	//machines
-	for (let m in game.machines) {
-		var mach = game.machines[m]
-		var base = baseMachines[mach.idx]
-		var sx = base.topLeft[0]*32, sy = base.topLeft[1]*32
-		var dx = mach.x*32, dy = mach.y*32
-		//belt
-		if (mach.idx == 10) {
-			var binary = ["a","w","s","d"]
-			var mod = binary.indexOf(mach.direction) 
-			ctx.drawImage(sprite.machines, sx+floor(mod/2)*32, sy+mod%2*32, 32, 32, dx, dy, 32, 32)
-			continue;
+		//calculate amount to insert
+		if (slotInfo[0] == item) {//slot to insert item is the same
+			amountToInsert = min(amount, b.maxSlotSize - slotInfo[1])
+		} else if (slotInfo[0] == undefined) {//slot to insert is empty
+			amountToInsert = min(amount, b.maxSlotSize)
+			game.blocks[machinePos][inputOrOutput][bl] = [item, 0]
 		}
+		if (amountToInsert == undefined) continue
 
-		//not belt
-		ctx.drawImage(sprite.machines, sx, sy, base.width*32, base.height*32, dx, dy, base.width*32, base.height*32)
-	}
-	
-	//entities
-	for (let en in entities) {
-		ctx.drawImage(sprite.items,0,entities[en].idx*16-16,16,16,entities[en].x-8,entities[en].y-8,16,16)
-	}
-	entities = []
+		//insert
+		game.blocks[machinePos][inputOrOutput][bl][1] += amountToInsert
+		amount -= amountToInsert
 
-	//highlight
-	if (buildSlot+1&&buildable) {
-		//if (max(tile[0],tile[1])<game.stats.size) 
-		ctx.fillStyle = build(true)?"#0f03":"#f003"
-		ctx.fillRect(tile[0]*32, tile[1]*32, baseMachines[buildSlot].width*32, baseMachines[buildSlot].height*32)
+		//update stuffs
+		if (slotInfo[1] == 0) game.blocks[machinePos][inputOrOutput][bl] = []
+		if (!limitlessInput) break;
+		if (amount == 0) break;
 	}
-
-	//to bluid (canvas 2)
-	document.getElementById("page").textContent = "Page " + (buildSlotPage+1)
-	ctx2.drawImage(sprite.machineCover,0,0)
-	ctx2.fillStyle = "#0f03"
-	if (buildSlotPage*40-1<=buildSlot<buildSlotPage*40+39) ctx2.fillRect(((1+buildSlot%40)%10)*32,Math.floor((1+buildSlot%40)/10)*32, 32, 32)
-	//info (canvas 3)
-	//ctx3.drawImage()
-
-	//info text
-	var blckd = blocked(tile[0], tile[1], 1, 1)-1
-	var target = game.machines[blckd]
-	var toInfo = target?target.idx:buildSlot
-	document.getElementById("info").textContent = ""
-	document.getElementById("info").textContent = (baseMachines[toInfo]||{description:""}).description
-	document.getElementById("mode").textContent = ["Plates","Rods","Cogs","Wires",""][(target||{mode: 4}).mode]
-	document.getElementById("recipe").textContent = ""
-	if (target) {
-		if (target.recipe != undefined) {	
-			document.getElementById("recipe").textContent = items[recipes[target.recipe].output[0][0]-1].name
-		}
-	}
-	document.getElementById("name").textContent = (baseMachines[toInfo]||{name:""}).name
+	return amount
 }
-function renderStorage() {
-	document.getElementById("search").hidden = false
-	document.getElementById("storagePage").hidden = false
-	document.getElementById("storageCanvas").hidden = false
-	canvas4.hidden = false
-	ctx4.scale(3,3)
-	var y = 0
-	while (++y<10) {
-		var x = 0
-		while (++x<10) {
-			var idx = y*9+x-10
-			ctx4.fillStyle = "#555";ctx4.fillRect(x*16-16,y*16-16,16,16)
-			ctx4.fillStyle = "#777";ctx4.fillRect(x*16-15,y*16-15,14,14)
-			ctx4.drawImage(sprite.items,0,idx*16,16,16,x*16-16,y*16-16,16,16)
-			ctx4.fillStyle = "#fff"
-		}
-	}
-	y = 0
-	while (++y<10) {
-		var x = 0
-		while (++x<10) {
-			var idx = y*9+x-10
-			ctx4.fillText(format(game.storage.items[idx]),x*16-8,y*16)
-		}
-	}
-	ctx4.resetTransform()
-}
-function renderUpgrades() {}
-function renderQuests() {}
-function render() {}
-function clear() {
-	ctx.clearRect(0,0,800,600)
-	canvas.hidden = true
-	document.getElementById("search").hidden = true
-	document.getElementById("storagePage").hidden = true
-	document.getElementById("side").hidden = true
-	document.getElementById("storageCanvas").hidden = true
-}
-function saveGame() {
-
-}
-function loadGame() {
-
-}
-function Machine(idx) {
-	this.input = JSON.parse(JSON.stringify(Array(64).fill([0,0])))
-	this.output = JSON.parse(JSON.stringify(Array(64).fill([0,0])))
-	this.x = 0
-	this.y = 0
-	this.idx = idx
-	this.energy = 0
-	this.maxEnergy = baseMachines[idx].maxEnergy
-	this.inputSlots = baseMachines[idx].iSlots
-	this.outputSlots = baseMachines[idx].oSlots
-	this.maxSlotsPerItem = baseMachines[idx].maxSlotsPerItem
-	this.maxStack = baseMachines[idx].maxStack
-	this.time = 0
-	this.outputable = function (item) {
-		var k = -1
-		while (++k<this.outputSlots) {
-			if ((this.output[k][0] == item[0] && this.output[k][1] + item[1] <= this.maxStack)||(!this.output[k][0] && item[1] <= this.maxStack)) {
-				return k+1
+function compressItems() {
+	for (let t in game.inventory) {
+		for (let u in game.inventory) {
+			if (u <= t) continue
+			if (game.inventory[t][0] == game.inventory[u][0] && game.inventory[t][0] != undefined) {
+				var toTransfer = min(64-game.inventory[t][1],game.inventory[u][1])
+				game.inventory[t][1] += toTransfer
+				game.inventory[u][1] -= toTransfer
 			}
 		}
-		return 0
+		updateInventory()
 	}
-	this.outputPush = function (item) {
-		var n = this.outputable(item)
-		if (!n) return 1
-		this.output[n-1][0] = item[0]
-		this.output[n-1][1] += item[1]
-	}
-	this.inputDelete = function (item) {
-		var k = -1
-		while (++k<this.inputSlots) {
-			if (this.input[k][0] == item[0]) {
-				this.input[k][1] -= item[1]
-			}
-			if (this.input[k][1]<=0) this.input[k] = [0,0]
-		}
-	}
-	this.inputable = function (item) {
-		var k = -1
-		var taken = Array(items.length).fill(0)
-		while (++k<this.inputSlots) {
-			taken[this.input[k][0]]++
-			if ((this.input[k][0] == item[0] && this.input[k][1]+item[1] <= this.maxStack && taken[this.input[k][0]]<=this.maxSlotsPerItem)||(!this.input[k][0] && item[1] <= this.maxStack)) {
-				return k+1
-			}
-		}
-		return 0
-	}
-	this.maxInputable = function (idx) {
-		var slot = this.inputable([idx,0])
-		if (!slot) return 0
-		return this.maxStack - this.input[slot-1][1]
-	}
-	this.inputPush = function (item) {
-		var n = this.inputable(item)
-		if (n) {
-			this.input[n-1][0]  = item[0]
-			this.input[n-1][1] += item[1]
-		}
-	}
-	this.outputDelete = function (item) {
-		var k = -1
-		while (++k<this.outputSlots) {
-			if (this.output[k][0] == item[0]) {
-				this.output[k][1] -= item[1]
-			}
-			if (this.output[k][1]<1) this.output[k] = [0,0]
-		}
-	}
-	this.maxOutputable = function (idx) {
-		var slot = this.outputable([idx,0])
-		if (!slot) return 0
-		return this.output[slot-1][1]
-	}
-	this.energySend = function (amt,target) {
-		var toSend = min(target.maxEnergy-target.energy, this.energy, amt)
-		target.energy += toSend
-		this.energy -= toSend
-	}
-	this.addEnergy = function (amt) {
-		this.energy = min(this.energy+amt, this.maxEnergy)
-	}
-	this.subEnergy = function (amt) {
-		this.energy = Math.max(0, this.energy - amt)
-	}
-	switch (idx) {
-		case 0:
-			this.func = function() {
-				if (this.time >= 50) {
-					this.outputPush([2,floor(this.time/50)])
-					this.time %= 50
+}
+function convertPosToChunk(x,y) {return [floor(y/9),floor(x/9)].join(";")}
+function deleteItems() {
+	if (game.inventory[game.inventorySlot][0] == undefined) return
+	game.inventory[game.inventorySlot][1]--
+	updateInventory()
+}
+function generateTerrain() {
+	//terrain generation (fr)
+	var tempMap = cloneObj(Array(450).fill(Array(450).fill(0)))
+	for (let v in veins) {
+		var t = 0
+		while (t++<veins[v][0]) {
+			var pos = [intRandom(0,449),intRandom(0,449)]
+			var x = -veins[v][1]-1
+			while (x++ < veins[v][1]) {
+				var y = -veins[v][1]-1
+				while (y++ < veins[v][1]) {
+					var l = [x+pos[0],y+pos[1]]
+					if (0 <= l[0] && l[1] <= 449 && l[0] <= 449 && l[1] >= 0) {
+						var distance = (hypot(x,y)/veins[v][1])**8+1
+						var veinChance = (Math.random()<veins[v][3]/distance)*(v*1+1)
+						tempMap[l[0]][l[1]] = veinChance?veinChance:tempMap[l[0]][l[1]]
+					}
 				}
+			}
+		}
+	}
+
+	//chunkify
+	var size = [50,50], a = -1
+	while (++a<size[0]) {
+		var b = -1
+		while (++b<size[1]) {
+			var depositChosen = intRandom(0,deposits.length-1)
+			var chunk = {
+				depositLeft: deposits[depositChosen][0],
+				depositType: depositChosen,
+				map: [[],[],[],[],[],[],[],[],[]],
+			}
+			var x1 = -1
+			while (++x1<9) {
+				var y1 = -1
+				while (++y1<9) {
+					chunk.map[x1][y1] = tempMap[a*9+x1][b*9+y1]
+				}
+			}
+			baseGame.map[a+";"+b] = chunk
+		}
+	}
+}
+function getTileInfo(x,y) {
+	var pos = [y,x]
+	var b = [floor(pos[0]/9),floor(pos[1]/9)]
+	b = b.join(";")
+	pos = pos.map(a => a%9)
+	return game.map[b].map[pos[0]][pos[1]]
+}
+function insertPower(machinePos,amount) {
+	var b = game.blocks[machinePos]
+	if (b == undefined) return amount
+	var powerToInsert = min(amount,b.maxPower-b.power)
+	b.power += powerToInsert
+	return amount - powerToInsert
+}
+function insertToMachines(machinePos,item,amount,iSlot,io) {
+	var b = game.blocks[machinePos]
+	if (iSlot == undefined) return amount
+	if (b[io][iSlot] == undefined) return amount
+
+	//if the item if valid
+	if (b[io][iSlot][0] == item) {
+		var toTransfer = min(b.maxSlotSize-b[io][iSlot][1],amount)
+		b[io][iSlot][1] += toTransfer
+		return amount - toTransfer
+	} else if (b[io][iSlot][0] == undefined) {
+		var toTransfer = min(b.maxSlotSize,amount)
+		b[io][iSlot] = [item, toTransfer]
+		return amount - toTransfer
+	}
+	return amount
+}
+function interact() {
+	switch (game.cursorMode) {
+		case 0:
+			var tile = getTileInfo(mX+game.x,mY+game.y)
+			var b = game.blocks[(mX+game.x)+";"+(mY+game.y)]
+			if (tile && mouseDown[0]) game.harvestProgress++
+			else game.harvestProgress = 0
+			if (game.harvestProgress >= 20) {
+				game.harvestProgress = 20
+
+				//random chance that vein is gone (rip)
+				if (Math.random()<0.00035) setTileInfo(mX+game.x,mY+game.y,0)
+
+				//give item
+				var addItemSuccess = addItem(veins[tile-1][2], 1)
+				if (addItemSuccess) game.harvestProgress = 0
+
+				//display if no inventory slot to put in
+				document.getElementById("displayInfo").className = addItemSuccess?"":"red"
+			} else document.getElementById("displayInfo").className = ""
+			if (!(b == undefined)) {
+				if (b.isPrimitive && mouseDown[0]) insertPower((mX+game.x)+";"+(mY+game.y),2)
 			}
 		break;
 		case 1:
-			this.func = function() {
-				if (this.time >= 50) {
-					this.outputPush([1,floor(this.time/50)])
-					this.time %= 50
+			var placeable = isPlaceable(), pX = game.x+mX, pY = game.y+mY
+			if (placeable == "Placeable" && mouseDown[0]) {
+				game.blocks[pX+";"+pY] = cloneObj(machines[items[game.inventory[game.inventorySlot][0]].placeBlock])
+				game.inventory[game.inventorySlot][1]--
+				updateInventory()
+			}
+			if (mouseDown[2]) {
+				var b = game.blocks[pX+";"+pY]
+				if (b == undefined) break;
+				if (game.inventory[game.inventorySlot][0] == b.name) {
+					if (game.inventory[game.inventorySlot][1] < 64) {
+						game.inventory[game.inventorySlot][1]++
+						delete game.blocks[pX+";"+pY]
+					}
+				} else if (game.inventory[game.inventorySlot][0] == undefined) {
+					game.inventory[game.inventorySlot] = [b.name, 1]
+					delete game.blocks[pX+";"+pY]
 				}
+				updateInventory()
 			}
 		break;
 		case 2:
-			this.func = function() {
-				if (this.time >= 50) {
-					this.outputPush([3,floor(this.time/50)])
-					this.time %= 50
-				}
-			}
+			if (click[2]) game.logicControl++
+			game.logicControl %= 4
+			var b = game.blocks[(mX+game.x)+";"+(mY+game.y)]
+			if (b == undefined) break
+			if (click[0]) b.logicSides[game.logicControl] = 1-b.logicSides[game.logicControl]
 		break;
 		case 3:
-			this.recipes = [
-				{"input":[[1, 1],[3 , 1]],"output":[[4 , 1]]}, //input / output
-				{"input":[[1, 1],[10, 1]],"output":[[11, 1]]},
-				{"input":[[1, 1],[17, 1]],"output":[[18, 1]]},
-				{"input":[[1, 1],[24, 1]],"output":[[25, 1]]},
-			]
-			this.process = function () {
-				for (let p1 in this.recipes) {
-					var able = Array(this.recipes[p1].input.length).fill(0)
-					for (let p2 in this.input) {
-						for (let p3 in this.recipes[p1].input) {
-							//what the fuck // checks if the slot is enough for crafting
-							able[p3] = (this.input[p2][0] == this.recipes[p1].input[p3][0] && this.input[p2][1] >= this.recipes[p1].input[p3][1])||able[p3]
-						}
-					}
-					if (able.reduce((a,b) => a*b)) {
-						var stop = false
-						for (let o in this.recipes[p1].output) {
-							var n = this.outputable(this.recipes[p1].output[o])
-							if (!n) {
-								stop = true 
-								break
-							}
-							this.outputPush(this.recipes[p1].output[o])
-						}
-						if (stop) continue
-						for (let i in this.recipes[p1].input) {
-							this.inputDelete(this.recipes[p1].input[i])
-						}
+			var b = game.blocks[(mX+game.x)+";"+(mY+game.y)]
+			if (b == undefined) break
+			if (b.ticksRunning > 0) break
+			var amount = 1
+			amount *= pressedKeys[16]?10:1
+			amount *= pressedKeys[17]?100:1
+			if (click[0]) b.CN += amount
+			else if (click[2]) b.CN -= amount
+			b.CN = max(0,b.CN)
+		break;
+	}
+}
+function isPlaceable() {
+	var item = game.inventory[game.inventorySlot][0]
+	if (item == undefined) return ""
+	if (items[item].placeBlock != undefined) {
+		if (!getTileInfo(game.x+mX,game.y+mY) && game.blocks[(game.x+mX)+";"+(game.y+mY)] == undefined) {
+			return "Placeable"
+		} else return "Obstructed"
+	} else return "Item not placeable"
+}
+function manualIO() {
+	var invSlot = game.inventory[game.inventorySlot] //only read this
+	var b = game.blocks[(game.x+mX)+";"+(game.y+mY)]
+	if (!(b == undefined)) {
+		var slots = b.in.length + b.out.length
+		if (b.machineType == -1 || b.machineType == -2) return
+		if (b.machineType == -3 || b.machineType == -6) slots /= 2
+		if (b.machineType == -4 || b.machineType == -5) slots -= b.out.length
+		var ioSlot = game.ioControl%slots
+		if (ioSlot < 0) ioSlot += slots
+		if (ioSlot < b.in.length) {
+			if (b.in[ioSlot][0] == undefined) { //input to empty input slot
+				if (invSlot[0] == undefined) return
+				var m = insertToMachines((game.x+mX) + ";" + (game.y+mY),invSlot[0],invSlot[1],ioSlot, "in")
+				game.inventory[game.inventorySlot][1] = m
+			} else { //output from input slot
+				var targetSlot = b.in[ioSlot]
+				if (invSlot[0] == undefined) {//inventory output slot is empty
+					var toTransfer = min(64,targetSlot[1])
+					addItem(targetSlot[0], toTransfer)
+					b.in[ioSlot][1] -= toTransfer
+					if (targetSlot[1] == 0) b.in[ioSlot] = []
+				} else if (invSlot[0] == targetSlot[0]) {//inventory output slot is not empty
+					var targetSlot = b.in[ioSlot]
+					var toTransfer = min(64-invSlot[1],targetSlot[1])
+					addItem(targetSlot[0], toTransfer)
+					b.in[ioSlot][1] -= toTransfer
+					if (targetSlot[1] == 0) b.in[ioSlot] = []
+				}
+			}
+		} else {
+			var targetSlot = b.out[ioSlot-b.in.length]
+			var toTransfer = targetSlot[1]
+			if (toTransfer == undefined) return
+			if (invSlot[1] == undefined) { // output to empty inventory slot
+				toTransfer = min(64,targetSlot[1])
+				addItem(targetSlot[0], toTransfer)
+				b.out[ioSlot-b.in.length][1] -= toTransfer
+				if (targetSlot[1] == 0) b.out[ioSlot-b.in.length] = []
+			} else if (invSlot[0] == targetSlot[0]) {//output to filled inv slot
+				toTransfer = min(64-invSlot[1],targetSlot[1])
+				addItem(targetSlot[0], toTransfer)
+				b.out[ioSlot-b.in.length][1] -= toTransfer
+				if (targetSlot[1] == 0) b.out[ioSlot-b.in.length] = []
+			}
+		}
+	}
+}
+function move(e) {
+	var key = e.key.toLowerCase()
+	switch (key) {
+		case "w": game.y--;break;
+		case "a": game.x--;break;
+		case "s": game.y++;break;
+		case "d": game.x++;break;
+		case "p": compressItems();break;
+		case "q": game.cursorMode = (game.cursorMode-1)%5;break;
+		case "e": game.cursorMode = (game.cursorMode+1)%5;break;
+		case "i": manualIO()      ;break;
+		case ",":
+			if (game.workstationCooldown <= 0) {
+				addItem("Workstation", 1)
+				game.workstationCooldown = 30000
+			}	
+		break;
+		case String.fromCharCode(92): deleteItems();break; 
+		case "1": case "2": case "3": case "4": case "5": case "6": case "7": case "8": case "9": game.inventorySlot = key*1-1
+	}
+	game.x = clamp(0,430,game.x)
+	game.y = clamp(0,435,game.y)
+	if (game.cursorMode < 0) game.cursorMode += 5
+	render()
+}
+function overclockCalc(basePower, machinePower, overclockFactor, baseTime) {
+	if (basePower == 0) return [baseTime, 0]
+	var sign = 1
+	if (basePower < 0) {sign *= -1; basePower *= -1} //energy generator
+	var overclocks = floor(log(machinePower/basePower,4))
+	var time = ceil(baseTime/(overclockFactor**overclocks))
+	return [time, basePower*(4**overclocks)*sign]
+}
+function removeFromMachine(machinePos,item,amount,inputOrOutput,maxUniqueItems) {
+	//if item is empty then it takes a random thing
+	var b = game.blocks[machinePos], itemsExtracted = {}
+	for (let bl in b[inputOrOutput]) {
+		if (maxUniqueItems == 0) break
+		if (b[inputOrOutput][bl] == undefined) continue
+		if (b[inputOrOutput][bl][0] == item || item == undefined) {
+			//calculate amount to extract
+			var amountToExtract = min(amount, b[inputOrOutput][bl][1])
+
+			//extract
+			game.blocks[machinePos][inputOrOutput][bl][1] -= amountToExtract
+			amount -= amountToExtract
+
+			//add to list
+			if (itemsExtracted[b[inputOrOutput][bl][0]] == undefined) {				
+				itemsExtracted[b[inputOrOutput][bl][0]] = amountToExtract
+				maxUniqueItems--
+			}
+			else itemsExtracted[b[inputOrOutput][bl][0]] += amountToExtract
+
+			//update stuffs
+			if (b[inputOrOutput][bl][1] == 0) game.blocks[machinePos][inputOrOutput][bl] = []
+			if (amount == 0) break;
+		}
+	}
+	return itemsExtracted
+}
+function render() {
+	//terrain
+	ctx.clearRect(0,0,900,600)
+	var colors = ["#15ad10","#c97910","#b3a494","#d2d4d9","#0f4503","#41aed9","#454545"]
+	var y1 = -1
+	while (y1++<14) {
+		var x1 = -1
+		while (x1++<19) {
+			ctx.fillStyle = colors[getTileInfo(x1+game.x,y1+game.y)]
+			ctx.fillRect(x1*40,y1*40,40,40)
+		}	
+	}
+
+	//chunk borders
+	ctx.strokeStyle = "#aaa"
+	ctx.lineWidth = 6
+	var cb = -5
+	while (cb++<4) {
+		ctx.beginPath()
+		ctx.moveTo(-20,cb*360-game.y%9*40)
+		ctx.lineTo(820,cb*360-game.y%9*40)
+		ctx.moveTo(cb*360-game.x%9*40,-20)
+		ctx.lineTo(cb*360-game.x%9*40,620)
+		ctx.stroke()
+		ctx.closePath()
+	}
+
+	//machine rendering
+	var y1 = -1
+	while (y1++<14) {
+		var x1 = -1
+		while (x1++<19) {
+			var machine = game.blocks[(x1+game.x)+";"+(y1+game.y)]
+			if (machine == undefined) continue
+			ctx.fillStyle = machine.color
+			ctx.fillRect(x1*40,y1*40,40,40)
+		}	
+	}
+
+	//highlight
+	ctx.fillStyle = "#ffffff66"
+	ctx.fillRect(mX*40,mY*40,40,40)
+
+	//display info
+	for (let k in [1,2,3,4]) {
+		document.getElementById("lo"+(k*1+1)).hidden = true
+	}
+	var text = ""
+	switch (game.cursorMode) {
+		case 0:
+			var tile = ["Nothing","Copper Ore","Iron Ore","Tin Ore","Tree","Water","Stone"][getTileInfo(mX+game.x,mY+game.y)]
+			text = tile
+			if (tile != "Nothing") {
+				text += " (" + (game.harvestProgress*5) + "%)"
+			}
+			var b = game.blocks[(game.x+mX)+";"+(game.y+mY)]
+			if (!(b == undefined)) {
+				if (b.machineType < 0) {
+					switch (b.machineType) {
+						case -1:
+						case -2:
+						case -3: //storage crates and pipes
+						case -6: //filter
+						case -7:
+							text = b.name
+						break;
+						case -4: //harvester and deposit miners
+						case -5:
+							text = b.name //name
+							text += " (" + b.power + "/" + b.maxPower + " F)"
+							var timeRun = b.ticksRunning/50
+							var timeToRun = overclockCalc(8, b.powerConsumption, b.overclock, 200)[0]/50
+							text += " (" + fix(timeRun) + "s / " + fix(timeToRun) + "s)"
 						break;
 					}
+					break;
 				}
+				text = b.name //name
+				text += " (CN: " + b.CN + ")" //circuit number
+				text += " (" + b.power + "/" + b.maxPower + " F)"
+				var recipeToRun
+				if (b.CN > 0) recipeToRun = recipes[b.machineType][b.CN-1], timeToRun = overclockCalc(recipeToRun.Ft, b.powerConsumption, b.overclock, recipeToRun.time)[0]/50
+				if (timeToRun == undefined) timeToRun = 0
+				var timeRun = b.ticksRunning/50
+				text += " (" + fix(timeRun) + "s / " + fix(timeToRun) + "s)"
 			}
-			this.func = function() {
-				if (this.time >= 20) {
-					this.process()
-					this.time %= 20
-				}
+		break;
+		case 1:
+			text = isPlaceable()
+		break;
+		case 2:
+			var b = game.blocks[(game.x+mX)+";"+(game.y+mY)]
+			if (b == undefined) break;
+			var logicDirection = [[0,-40],[40,0],[0,40],[-40,0]]
+			for (let k in [1,2,3,4]) {
+				document.getElementById("lo"+(k*1+1)).hidden = false
+				document.getElementById("lo"+(k*1+1)).className = ["red","green"][b.logicSides[k]]
 			}
+			document.getElementById("lo"+(game.logicControl+1)).className += " bold"
+			ctx.fillStyle = ["#f006","#0f06"][b.logicSides[game.logicControl]]
+			ctx.fillRect(mX*40+logicDirection[game.logicControl][0],mY*40+logicDirection[game.logicControl][1],40,40)
+		break;
+		case 3:
+			var b = game.blocks[(game.x+mX)+";"+(game.y+mY)]
+			if (b == undefined) break;
+			text = "Circuit Number: " + b.CN
 		break;
 		case 4:
-			this.func = function() {
-				if (this.time >= 50) {
-					this.outputPush([10,floor(this.time/50)])
-					this.time %= 50
-				}
-			}
-		break;
-		case 5:
-			this.func = function() {
-				//if (this.x == tile[0] && this.y == tile[1]) this.addEnergy(4)
-				this.addEnergy(4)
-				var targets = [
-					blocked(this.x+1, this.y  , 1, 1)-1,
-					blocked(this.x-1, this.y  , 1, 1)-1,
-					blocked(this.x  , this.y+1, 1, 1)-1,
-					blocked(this.x  , this.y-1, 1, 1)-1,
-				]
-				for (let t in targets) {
-					var toSend = game.machines[targets[t]]
-					if (toSend) this.energySend(4, toSend)
-				}
-			}
-		break;
-		case 6:
-			this.mode = 0 //0 = plate, 1 = rods, 2 = cogs, 3 = wires
-			this.recipes = [
-				[
-					{"input":[[4,1]],"output":[[5,1]],"level":0},
-					{"input":[[11,1]],"output":[[12,1]],"level":0},
-					{"input":[[18,1]],"output":[[19,1]],"level":0},	
-					{"input":[[25,1]],"output":[[26,1]],"level":0},
-				],
-				[
-					{"input":[[4,1]],"output":[[7,2]],"level":0},
-					{"input":[[11,1]],"output":[[14,2]],"level":0},
-					{"input":[[18,1]],"output":[[21,2]],"level":0},
-					{"input":[[25,1]],"output":[[28,2]],"level":0},
-				],
-				[
-					{"input":[[4,2]],"output":[[6,1]],"level":0},
-					{"input":[[11,2]],"output":[[13,1]],"level":0},
-					{"input":[[18,2]],"output":[[20,1]],"level":0},
-					{"input":[[25,2]],"output":[[27,1]],"level":0},
-				],
-				[
-					{"input":[[4,1]],"output":[[65,5]],"level":0},
-					{"input":[[11,1]],"output":[[14,5]],"level":0},
-					{"input":[[18,1]],"output":[[21,5]],"level":0},
-					{"input":[[25,1]],"output":[[28,5]],"level":0},
-
-				],
-			]
-			this.process = function () {
-				for (let p1 in this.recipes[this.mode]) {
-					var able = Array(this.recipes[this.mode][p1].input.length).fill(0)
-					for (let p2 in this.input) {
-						for (let p3 in this.recipes[this.mode][p1].input) {
-							//what the fuck // checks if the slot is enough for crafting
-							able[p3] = (this.input[p2][0] == this.recipes[this.mode][p1].input[p3][0] && this.input[p2][1] >= this.recipes[this.mode][p1].input[p3][1])||able[p3]
-						}
+			var b = game.blocks[(game.x+mX)+";"+(game.y+mY)]
+			if (!(b == undefined)) {
+				if (b.machineType >= 0) {
+					var slots = b.in.length + b.out.length
+					text = b.name, input = [], output = []
+					for (let i in b.in) {
+						var inp = b.in[i]
+						if (inp[0] == undefined) input.push("I" + (i*1+1) + ": -")
+						else input.push("I" + (i*1+1) + ": " + inp[0] + " - " + inp[1])
 					}
-					if (able.reduce((a,b) => a*b)) {
-						var stop = false
-						for (let o in this.recipes[this.mode][p1].output) {
-							var n = this.outputable(this.recipes[this.mode][p1].output[o])
-							if (!n) {
-								stop = true 
-								break
+					for (let o in b.out) {
+						var outp = b.out[o]
+						if (outp[0] == undefined) output.push("O" + (o*1+1) + ": -")
+						else output.push("O" + (o*1+1) + ": " + outp[0] + " - " + outp[1])
+					}
+					text += "(" + input.join(" | ") + " -> " + output.join(" | ") + ") "
+					var ioSlot = game.ioControl%slots
+					if (ioSlot < 0) ioSlot += slots
+					var slotName = ioSlot<b.in.length?"I"+(ioSlot+1):"O"+(ioSlot-b.in.length+1)
+					text += "(" + slotName + ")"
+				} else if ([-1,-2,-3,-6].indexOf(b.machineType) != -1) { //pipes and storage boxes
+					var slots = b.in.length
+					text = b.name, storage = []
+					for (let i in b.in) {
+						var inp = b.in[i]
+						if (inp[0] == undefined) storage.push("-")
+						else storage.push(inp[0] + " - " + inp[1])
+					}
+					text += " (" + storage.join(" | ") + ") "
+					var ioSlot = game.ioControl%slots
+					if (ioSlot < 0) ioSlot += slots
+					var slotName = "S" + (ioSlot+1)
+					text += "(" + slotName + ")"
+				} else if ([-4,-5].indexOf(b.machineType) != -1) {
+					var slots = b.in.length
+					text = b.name, input = [], output = []
+					for (let i in b.in) {
+						var inp = b.in[i]
+						if (inp[0] == undefined) input.push("I" + (i*1+1) + ": -")
+						else input.push("I" + (i*1+1) + ": " + inp[0] + " - " + inp[1])
+					}
+					for (let o in b.out) {
+						var outp = b.out[o]
+						if (outp[0] == undefined) output.push("O" + (o*1+1) + ": -")
+						else output.push("O" + (o*1+1) + ": " + outp[0] + " - " + outp[1])
+					}
+					text += "(" + input.join(" | ") + " -> " + output.join(" | ") + ") "
+					var ioSlot = game.ioControl%slots
+					if (ioSlot < 0) ioSlot += slots
+					var slotName = "I" + (ioSlot+1)
+					text += "(" + slotName + ")"
+				}//harvesters and deposit miners
+			}
+		break;
+	}
+	text += " (" + ["Interact","Place","Logic","Circuit","I/O"][game.cursorMode] + ")"
+	document.getElementById("displayInfo").textContent = text
+
+	//bold inventory slot
+	document.getElementById("invBold").textContent = "#inv" + (game.inventorySlot+1) + "{color:#ff0}"
+
+	//inventory text
+	for (let i in game.inventory) {
+		var text = document.getElementById("inv" + (i*1+1))
+		if (game.inventory[i][0] == undefined) text.textContent = "-"
+		else text.textContent = game.inventory[i][0] + " - " + game.inventory[i][1]
+	}
+}
+function setTileInfo(x,y,m) {
+	var pos = [y,x]
+	var b = [floor(pos[0]/9),floor(pos[1]/9)]
+	b = b.join(";")
+	pos = pos.map(a => a%9)
+	game.map[b].map[pos[0]][pos[1]] = m
+}
+function simulatePipe(pos,DONT) {
+	var bl1 = game.blocks[pos]
+	if (bl1.simulated) return
+	var currentXY = pos.split(";").map(a => a*1)
+	var allowed = ["item","fluid"][-bl1.machineType-1]
+	var sides = [[0,-1],[1,0],[0,1],[-1,0]]
+	for (let k in sides) {
+		var pos2 = [currentXY[0]+sides[k][0],currentXY[1]+sides[k][1]]
+		if (pos2[0] < 0 || pos2[0] > 499 || pos2[1] < 0 || pos2[1] > 499) continue //out of bounds
+		pos2 = pos2.join(";")
+		if (pos2 == DONT) continue //anti infinite loop
+
+		//check if same type
+		var bl2 = game.blocks[pos2]
+		if (bl2 == undefined) continue
+		if (bl1.machineType == bl2.machineType) { //between pipe transfer
+			if (!bl1.logicSides[k]) continue
+			var targetHasItem = false
+			for (let m in bl2.in) { //check if inpute has anything
+				if (!(bl2.in[m][0] == undefined)) {
+					targetHasItem = true
+					break;
+				}
+			}
+			if (targetHasItem) simulatePipe(pos2,pos)
+			else game.blocks[pos2].simulated = true
+
+			//swap the things
+			for (let n in bl1.in) {
+				if (bl2.in[n] == undefined) break
+				game.blocks[pos].in[n][1] = insertToMachines(pos2,bl1.in[n][0],bl1.in[n][1],n, "in")
+				if (game.blocks[pos].in[n][1] == 0) game.blocks[pos].in[n] = []
+			}
+		} else if (bl2.machineType != -1 && bl2.machineType != -2) { //pipe -> machine
+			var targetSide = [2,3,0,1][k]
+			if (bl2.logicSides[targetSide]) {//extract from the machine
+				for (let n in bl2.out) {
+					if (bl2.out[n][0] == undefined) continue
+					if (bl1.in[n] == undefined) continue
+					if (items[bl2.out[n][0]].itemType != allowed) continue
+					game.blocks[pos2].out[n][1] = insertToMachines(pos,bl2.out[n][0],bl2.out[n][1],n, "in")
+					if (game.blocks[pos2].out[n][1] == 0) game.blocks[pos2].out[n] = []
+				}
+			} else {//insert to machines
+				for (let n in bl1.in) {
+					//non filter
+					if (bl2.machineType != -6) game.blocks[pos].in[n][1] = addToMachines(pos2, bl1.in[n][0], bl1.in[n][1], "in", false)
+					else if (bl1.in[n][0] == IDListItems[bl2.CN]) game.blocks[pos].in[n][1] = addToMachines(pos2, bl1.in[n][0], bl1.in[n][1], "in", false)
+					if (game.blocks[pos].in[n][1] == 0) game.blocks[pos].in[n] = []
+				}
+			}
+		}
+	}
+	game.blocks[pos].simulated = true
+}
+function update() {
+	for (let m in mouseDown) {
+		click[m] = mouseDown[m] && !clickBuffer[m]
+		clickBuffer[m] = mouseDown[m]
+	}
+	if (game.cursorMode == 4) {
+		game.ioControl -= click[0]
+		game.ioControl += click[2]
+	}
+	game.time++
+	game.workstationCooldown--
+	interact()
+	updateInventory()
+	updateBlocks()
+	render()
+}
+function updateInventory() {
+	for (let i in game.inventory) {
+		if (game.inventory[i][1] === 0) game.inventory[i] = []
+	}
+}
+function updateBlocks() {
+	for (let b in game.blocks) { //pipes
+		var bl = game.blocks[b]
+		if (!(bl.simulated == undefined)) bl.simulated = false
+	}
+	for (let b in game.blocks) {
+		var bl = game.blocks[b]
+		if (bl.isSteam) {
+			if (bl.maxPower - bl.power >= 512) {
+				var steamRemove = removeFromMachine(b,"Steam",1,"in",Infinity)
+				if (steamRemove["Steam"] == 1) bl.power += 512
+			}
+		}
+		if (bl.machineType >= 0) {
+			if (bl.CN == 0) continue
+			var recipeToRun = recipes[bl.machineType][bl.CN-1]
+			var time = overclockCalc(recipeToRun.Ft, bl.powerConsumption, bl.overclock, recipeToRun.time) //[0] should be time, [1] power consumption
+			if (bl.ticksRunning == 0) { //starts a recipe if it's not running
+				var itemList = {}, canRunRecipe = true
+				
+				//get item list
+				for (let i in bl.in) {
+					if (bl.in[i][0] == undefined) continue
+					if (itemList[bl.in[i][0]] == undefined) itemList[bl.in[i][0]] = bl.in[i][1]
+					else itemList[bl.in[i][0]] += bl.in[i][1]
+				}
+
+				//check if can run recipe (item)
+				for (let m in recipeToRun.in) {
+					if ((itemList[recipeToRun.in[m][0]]||0) < recipeToRun.in[m][1]) canRunRecipe = false
+					if (!canRunRecipe) break
+				}
+				if (!canRunRecipe) continue
+
+				//check if enough power to run recipe
+				if (time[1] > bl.power) continue
+
+				//check if output is obstructed
+				var voidedItems = 0
+				for (let m in recipeToRun.out) {
+					var frostState = cloneObj(game.blocks[b])
+					voidedItems += addToMachines(b, recipeToRun.out[m][0], recipeToRun.out[m][1], "out", true)
+					if (voidedItems > 0) break
+				}
+				game.blocks[b] = frostState
+				if (voidedItems > 0) continue
+				
+				//run the recipe
+				for (let m in recipeToRun.in) {
+					removeFromMachine(b,recipeToRun.in[m][0],recipeToRun.in[m][1],"in",Infinity)
+				}
+				game.blocks[b].ticksRunning++
+				game.blocks[b].power -= time[1]
+			} else {
+				if (bl.power >= time[1]) {
+					game.blocks[b].ticksRunning++
+					game.blocks[b].power -= time[1]
+				}
+			}
+			if (bl.ticksRunning == time[0]) {
+				game.blocks[b].ticksRunning = 0
+				for (let m in recipeToRun.out) {
+					addToMachines(b, recipeToRun.out[m][0], recipeToRun.out[m][1], "out", true)
+				}
+			}
+		} else {
+			switch (bl.machineType) {
+				case -8: //trash can
+					for (let i in bl.in) {
+						game.blocks[b].in[i] = []
+					}
+					for (let o in bl.out) {
+						game.blocks[b].out[o] = []
+					}//idk how it can get in the output slot but just in case
+				break;
+				case -6: //filters
+				case -3: //storage crate
+					game.blocks[b].in = game.blocks[b].out
+				break;
+				case -1: //pipes //-1 is item
+				case -2:
+					game.blocks[b].in = game.blocks[b].out
+					if (game.time % bl.pipeSpeed == 0) simulatePipe(b)
+				break;
+				case -4: //harvester
+					var time = overclockCalc(8, bl.powerConsumption, bl.overclock, 500)
+					if (bl.ticksRunning == 0) {
+						//power check
+						if (time[1] > bl.power) break
+
+						//get a random block to mine
+						var x1 = -bl.range-1, targets = [], bPos = b.split(";").map(a => a*1)
+						while (x1++<bl.range) {
+							var y1 = -bl.range-1
+							while (y1++<bl.range) {
+								var tX = x1+bPos[0], tY = y1+bPos[1]
+								var tileInfo = getTileInfo(tX,tY)
+								if (tileInfo != 0) targets.push([tX,tY])
 							}
-							this.outputPush(this.recipes[this.mode][p1].output[o])
 						}
-						if (stop) continue
-						for (let i in this.recipes[this.mode][p1].input) {
-							this.inputDelete(this.recipes[this.mode][p1].input[i])
-						}
-						this.subEnergy(100)
-						break;
-					}
-				}
-			}
-			this.func = function() {
-				if (this.time >= 20) {
-					if (this.energy>=100) {
-						this.process()
-					}
-					this.time %= 20
-				}
-			}
-		break;
-		case 7:
-			this.recipe = 0
-			this.process = function () {
-				var able = Array(recipes[this.recipe].input.length).fill(0)
-				for (let p2 in this.input) {
-					for (let p3 in recipes[this.recipe].input) {
-						//what the fuck // checks if the slot is enough for crafting
-						able[p3] = (this.input[p2][0] == recipes[this.recipe].input[p3][0] && this.input[p2][1] >= recipes[this.recipe].input[p3][1])||able[p3]
-					}
-				}
-				if (able.reduce((a,b) => a*b)) {
-					var stop = false
-					for (let o in recipes[this.recipe].output) {
-						var n = this.outputable(recipes[this.recipe].output[o])
-						if (!n) {
-							stop = true 
-							break
-						}
-						this.outputPush(recipes[this.recipe].output[o])
-					}
-					for (let i in recipes[this.recipe].input) {
-						if (stop) break
-						this.inputDelete(recipes[this.recipe].input[i])
-					}
-					if (!stop) this.subEnergy(150)
-				}
-			}
-			this.func = function() {
-				if (this.time >= 20) {
-					if (this.energy>=150) {
-						this.process()
-					}
-					this.time %= 20
-				}
-			}
+						//get the exact block to mine
+						if (targets.length == 0) break
+						var target = targets[intRandom(0,targets.length-1)]
+						var targetVein = getTileInfo(target[0],target[1])
 
-		break;
-		case 8:
-			this.func = function() {
-				if (this.time>=5) {
-					for (let k in this.input) {
-						if (this.input[k][0] && this.input[k][1]) {
-							game.storage.items[this.input[k][0]]++
-							this.inputDelete([this.input[k][0],1])
-							break;
+						//check if output is obstructed
+						var voidedItems = 0
+						var frostState = cloneObj(game.blocks[b])
+						voidedItems += addToMachines(b, veins[targetVein-1][2], 1, "out", true)
+						game.blocks[b] = frostState
+						if (voidedItems > 0) break
+
+						//set everything up
+						game.blocks[b].currentMine = targetVein
+
+						if (Math.random()<0.00025) setTileInfo(target[0],target[1],0)
+						game.blocks[b].ticksRunning++
+						game.blocks[b].power -= time[1]
+
+					} else {
+						if (bl.power >= time[1]) {
+							game.blocks[b].ticksRunning++
+							game.blocks[b].power -= time[1]
 						}
 					}
-					this.time %= 5 
-				}
-			}
-		break;
-		case 10:
-		this.direction = rotationBuild
-			this.ioed = true
-			this.outputed = true
-			this.inputed = true
-			this.func = conveyor(25)		
-		break;
-		case 11:
-			this.func = function() {
-				if (this.time >= 50) {
-					this.outputPush([17,floor(this.time/50)])
-					this.time %= 50
-				}
-			}
-		break;
-		case 12:
-			this.func = function() {
-				if (this.time >= 50) {
-					this.outputPush([24,floor(this.time/50)])
-					this.time %= 50
-				}
-			}
-		break;
-		case 13:
-			this.func = function() {
-				//target to input
-				var toIO, k = -1
-				while (++k < this.inputSlots) {
-					if (this.input[k][0]!=0) toIO = this.input[k].slice()
-				}
-				if (!toIO) return
+					if (bl.ticksRunning == time[0]) {
+						bl.ticksRunning = 0
+						if (bl.currentMine == 0) break //how
+						addToMachines(b, veins[bl.currentMine-1][2], 1, "out", true)
+					}
+				break;
+				case -5: //deposit miner
+					var time = overclockCalc(8, bl.powerConsumption, bl.overclock, 500)
+					if (bl.ticksRunning == 0) {
+						//power check
+						if (time[1] > bl.power) break
 
-				//outputable check + output
-				var output = this.outputPush(toIO)
-				if (output) return
+						//get deposit to mine
+						var xy = b.split(";").map(a => a*1)
+						var chunk = convertPosToChunk(xy[0],xy[1])
+						var depositToMine = deposits[game.map[chunk].depositType]
+						if (game.map[chunk].depositLeft == 0) break
 
-				//clear input
-				this.inputDelete(toIO)
-				this.ioed = true
-			}
-		break;
-	}
-}
-function Entity() {
-	this.x = 0
-	this.y = 0
-	this.idx = 0
-}
-function build(check) {
-	if (!buildable) return 0
-	if (mouseDown[1]) {
-		var place = blocked(tile[0], tile[1], 1, 1)-1
-		console.log(place)
-		buildSlot = (game.machines[place]||{idx:-1}).idx
-	}
-	if (!(buildSlot+1)) return 0
-	if (mouseDown[0]||check) {
-		if (blocked(tile[0],tile[1],baseMachines[buildSlot].width,baseMachines[buildSlot].height)) return 0
-		var toBuild = new Machine(buildSlot)
-		toBuild.x = tile[0]
-		toBuild.y = tile[1]
-		toBuild.direction = rotationBuild
-		if (check) return 1
-		game.machines.push(toBuild)
-	}
-	if (mouseDown[2]) {
-		var toDelete = blocked(tile[0],tile[1],1,1)
-		if (!toDelete) return 0
-		toDelete--
-		var mTD = game.machines[toDelete]
-		for (let k in mTD.input ) {game.storage.items[mTD.input[k][0] ] += mTD.input[k][1] ;if(k*1+1>mTD.inputSlots )break}
-		for (let k in mTD.output) {game.storage.items[mTD.output[k][0]] += mTD.output[k][1];if(k*1+1>mTD.outputSlots)break}
-		game.machines.splice(toDelete, 1)
-	}
-}
-function blocked(x, y, w, h) {
-	var isBlocked = false
-	var outOfBounds = false
-	var blockedBy = 0
+						//check if output is obstructed
+						var voidedItems = 0
+						var frostState = cloneObj(game.blocks[b])
+						voidedItems += insertToMachines(b, depositToMine[1], 1, 0, "out")
+						voidedItems += insertToMachines(b, depositToMine[2], 1, 1, "out")
+						voidedItems += insertToMachines(b, depositToMine[3], 1, 2, "out")
+						game.blocks[b] = frostState
+						if (voidedItems > 0) break
 
-	//out of bounds check
-	//create blocked space
-	var awm = -1
-	while (++awm<w) {
-		var ahm = -1
-		while (++ahm<h) {
-			var p = [x+awm,y+ahm]
-			//conq[p[0]][p[1]] = 1
-			//out of bounds check
-			outOfBounds = outOfBounds || (p[0]>=game.stats.size||p[1]>=game.stats.size)
-		}
-	}
-	if (outOfBounds) return Infinity
-	// find blocked space
-	/*for (let m in game.machines) {
-		var wm = -1
-		var width = baseMachines[game.machines[m].idx].width
-		var height = baseMachines[game.machines[m].idx].height
-		while (++wm<width&&!blockedBy) {
-			var hm = -1
-			while (++hm<height&&!blockedBy) {
-				var k = [game.machines[m].x+wm,game.machines[m].y+hm]
-				if (conq[k[0]][k[1]]) blockedBy = m*1+1
-			}
-		}
-		if (blockedBy) break
-	}*/
-	for (let m in game.machines) {
-		var mach = game.machines[m]
-		var base = baseMachines[mach.idx]
-		if (aabb(mach.x, mach.y, base.width, base.height, x, y, w, h)) {
-			blockedBy = m*1+1
-			break
-		}
-	}
-	return blockedBy	
-}
-function tick() {
+						//set everything up
+						game.blocks[b].ticksRunning++
+						game.blocks[b].power -= time[1]
 
-	//machine tick
-	var belts = [], t
-	for (let m in game.machines) {
-		game.machines[m].time++
-		//if (game.machines[m].idx == 10) {belts.push(game.machines[m]);continue}
-		game.machines[m].func()
-	}
-	t = Math.ceil(belts.length**0.4)
-	while (t--) {
-		for (let b in belts) {
-			belts[b].func()
-			if (!belts[b].outputed&&!belts[b].ioed&&!belts[b].inputed) belts.splice(b,1)
-		}
-	}
-	/*for (let b in belts) {
-		belts[b].inputed = true 
-		belts[b].outputed = true 
-		belts[b].ioed = true 
-	}*/
-	ticks++
-}
-function conveyor(tpe) {
-	return function() {
-		if (this.time >= tpe) {
-			this.time %= tpe
-			this.ioed = false
-			this.outputed = false
-			this.inputed = false
-		}
-
-		//input, opposite = input
-		var cx = 0
-		var cy = 0
-		switch (this.direction) {
-			case "w": cy = 1;break;
-			case "a": cx = -1;break;
-			case "s": cy = -1;break;
-			case "d": cx = 1 ;break;
-		}
-
-		//push output first bc it just works
-		while (!this.outputed)  {
-			// find item to push
-			var toPush, k = -1
-			while (++k < this.outputSlots) {
-				if (this.output[k][0]!=0) toPush = this.output[k].slice()
-			}
-
-			//no item to push
-			if (!toPush) break
-
-			//checks if there is a target
-			var target = blocked(this.x-cx,this.y-cy,1,1)
-
-			//target not found
-			if (!target) break
-			target = game.machines[target-1]
-					
-			//check if you can push
-			toPush[1] = min(target.maxInputable(toPush[0]), this.maxOutputable(toPush[0]))
-
-			//push
-			target.inputPush(toPush)
-
-			//clean output
-			this.outputDelete(toPush)
-			this.outputed = true
-		}
-
-		// input -> output conversion
-		while (!this.ioed) {
-			//target to input
-			var toIO, k = -1
-			while (++k < this.inputSlots) {
-				if (this.input[k][0]!=0) toIO = this.input[k].slice()
-			}
-			if (!toIO) break
-
-			//outputable check + output
-			var output = this.outputPush(toIO)
-			if (output) break
-
-			//clear input
-			this.inputDelete(toIO)
-			this.ioed = true
-		}
-			
-		//input read
-		while (!this.inputed) {
-
-			//target shenanigans //correct 
-			var target = blocked(this.x+cx,this.y+cy,1,1)
-			if (!target) break
-			target = game.machines[target-1]
-			if (target.idx == 10) break
-
-			//slot to output
-			var toPull, k = -1
-			while (++k < target.outputSlots) {
-				if (target.output[k][0]!=0) toPull = target.output[k].slice()
-			}
-			if (!toPull) break
-
-			var transfer = [toPull[0],min(target.maxOutputable(toPull[0]), this.maxInputable(toPull[0]))]
-			if (transfer[1] == 0) break
-			//input
-			this.inputPush(transfer)
-
-			//clear
-			target.outputDelete(transfer)
-			this.inputed = true
-		}
-	
-		//create entities to render
-		var i=-1,o=-1
-
-		//input
-		while (++i<this.inputSlots) {
-
-			//id to render
-			var ent = new Entity()
-			ent.idx = this.input[i][0]
-			if (ent.idx == 0) break
-
-			//center
-			var pos = [this.x*32+16,this.y*32+16]
-
-			//direction shift
-			pos[0] += cx*16
-			pos[1] += cy*16
-
-			//index shift
-			pos[0] -= cx*32/(this.inputSlots+this.outputSlots)*i
-			pos[1] -= cy*32/(this.inputSlots+this.outputSlots)*i
-
-			//launch preparation :trollgod:
-			ent.x = pos[0]
-			ent.y = pos[1]
-
-			entities.push(ent)
-		}
-		
-		//output
-		while (++o<this.outputSlots) {
-
-			//id to render
-			var ent = new Entity()
-			ent.idx = this.output[o][0]
-			if (ent.idx == 0) break
-
-			//center
-			var pos = [this.x*32+16,this.y*32+16]
-
-			//direction shift
-			pos[0] += cx*16
-			pos[1] += cy*16
-
-			//index shift
-			pos[0] -= cx*32/(this.inputSlots+this.outputSlots)*(o+this.inputSlots)
-			pos[1] -= cy*32/(this.inputSlots+this.outputSlots)*(o+this.inputSlots)
-
-			//launch preparation :trollgod:
-			ent.x = pos[0]
-			ent.y = pos[1]
-
-			entities.push(ent)
-		} //input 
-	}
-}
-//function inputStorage(item) {}
-//other/utils functions
-function max() {var a = arguments,c=-Infinity;for (let b in a) {c=Math.max(c,a[b])}return c}
-function min() {var a = arguments,c= Infinity;for (let b in a) {c=Math.min(c,a[b])}return c}
-function floor(a) {return Math.floor(a)}
-function getMousePos(e) {
-	var r = canvas.getBoundingClientRect()
-	mousePos = {
-		x: e.clientX - r.left,
-		y: e.clientY - r.top
-	}
-	tile = [floor(mousePos.x/32), floor(mousePos.y/32)]
-}
-function toggleBuild(k) {
-	buildable = k
-	if (!k) mouseDown = [0, 0, 0, 0, 0, 0, 0, 0, 0]
-}
-function changeTab(k) {
-	var maxTabs = 3, n = -1
-	while (n++<3) {
-		document.getElementById("t"+n).className = ""
-	}
-	if (tab == k) tab = 0
-	else tab = k
-	document.getElementById("t"+tab).className = "clickedtab"
-}
-function changePage(n) {
-	var maxPages = Math.ceil(baseMachines.length/40)
-	var page = (page+n) % maxPages
-}
-function machinePos(e) {
-	var r = canvas2.getBoundingClientRect()
-	var mousePos2 = {
-		x: e.clientX - r.left,
-		y: e.clientY - r.top
-	}
-	mTile = [floor(mousePos2.x/32), floor(mousePos2.y/32)]
-}
-function changeMachine() {
-	buildSlot = buildSlotPage*40+mTile[1]*10+mTile[0]-1
-}
-function aabb(x1,y1,w1,h1,x2,y2,w2,h2) {
-	return x1<x2+w2&&x1+w1>x2&&y1<y2+h2&&y1+h1>y2
-}
-function format(n,type) {
-	var formatThing = ["","K","M","G","T","P"]
-	switch (type) {
-		case "exact":
-			var digitAfter = 3, combined = (n+"").split(""), length = combined.length
-			while (digitAfter < length) {
-				combined.splice(length-digitAfter,0,",")
-				digitAfter += 3
-			}
-			return combined.join("")
-		break;
-		case "metric": var formatThing = ["","K","M","G","T","P"];break;
-	}
-	if (n < 1000) return n
-	var exp = Math.floor(Math.log10(n)/3)
-	var mantissa = n/(10**(exp*3))
-	return mantissa.toFixed(2)+formatThing[exp]
-
-}
-//stackoverflow check key down thing
-var pressedKeys = {};
-window.onkeyup = function(e) { pressedKeys[e.keyCode] = false; }
-window.onkeydown = function(e) { pressedKeys[e.keyCode] = true; }
-
-//mous
-var mouseDown = [0, 0, 0, 0, 0, 0, 0, 0, 0]
-document.body.onmousedown=function(evt){mouseDown[evt.button]=1}
-document.body.onmouseup=function(evt){mouseDown[evt.button]=0}
-
-//right click dumb prevention
-canvas.oncontextmenu=function(e){e.preventDefault();e.stopPropagation()}
-function kbpress(e) {
-	if (e.key.toLowerCase() == "r") {
-		var toRotate = blocked(tile[0], tile[1], 1, 1) - 1
-		if (toRotate+1) {
-			game.machines[toRotate].direction = ["w","a","s","d"][(["w","a","s","d"].indexOf(game.machines[toRotate].direction)+1)%4]
-			return
-		}
-		rotationBuild = ["w","a","s","d"][(["w","a","s","d"].indexOf(rotationBuild)+1)%4]
-	}
-	if (e.key.toLowerCase() == "t") {
-		console.log(2)
-		var toChange = blocked(tile[0], tile[1], 1, 1) - 1
-		if (toChange + 1) {
-			var target = game.machines[toChange]
-			console.log(target)
-			switch (target.idx) {
-				case 6: target.mode = (target.mode+1)%4;break;
-				case 7: target.recipe = (target.recipe+1)%recipes.length;break;
+					} else {
+						if (bl.power >= time[1]) {
+							game.blocks[b].ticksRunning++
+							game.blocks[b].power -= time[1]
+						}
+					}
+					if (bl.ticksRunning == time[0]) {
+						game.blocks[b].ticksRunning = 0
+						var xy = b.split(";").map(a => a*1)
+						var chunk = convertPosToChunk(xy[0],xy[1])
+						var depositToMine = deposits[game.map[chunk].depositType]
+						var targetOre = weighted_random([80,15,5])*1+1
+						console.log(targetOre)
+						game.map[chunk].depositLeft--
+						insertToMachines(b, depositToMine[targetOre], 1, targetOre-1, "out")
+					}
+				break;
 			}
 		}
 	}
 }
-setInterval(update,20)
+
+//saving
+function saveGame() {
+	localStorage.factoryGame = JSON.stringify(game)
+}
+function loadGame(save) {
+	generateTerrain()
+	var gameSave = save||localStorage.factoryGame
+	if (typeof gameSave == "undefined") game = baseGame
+	else game = copyObj(baseGame, JSON.parse(gameSave))
+	for (let b in game.blocks) {
+		game.blocks[b] = copyObj(machines[game.blocks[b].name],game.blocks[b])
+	}
+	setInterval(update,20)
+	setInterval(saveGame, 4000)
+}
+function resetGame() {
+	localStorage.removeItem("factoryGame")
+}
 </script>
 </html>
