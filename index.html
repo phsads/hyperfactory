@@ -57,6 +57,8 @@
 		<span id="inv8">-</span> |
 		<span id="inv9">-</span>
 	</div>
+	<a href="guide.html">Guide</a>
+	<a href="recipes.html">Recipes</a>
 </body>
 <script src="functions.js" type="text/javascript"></script>
 <script src="variables.js" type="text/javascript"></script>
@@ -361,8 +363,7 @@ function move(e) {
 		case "i": manualIO()      ;break;
 		case ",":
 			if (game.workstationCooldown <= 0) {
-				addItem("Workstation", 1)
-				game.workstationCooldown = 30000
+				if (addItem("Workstation", 1)) game.workstationCooldown = 30000
 			}	
 		break;
 		case String.fromCharCode(92): deleteItems();break; 
@@ -682,8 +683,8 @@ function updateBlocks() {
 			}
 		}
 		if (bl.machineType >= 0) {
-			if (bl.CN == 0) continue
 			var recipeToRun = recipes[bl.machineType][bl.CN-1]
+			if (recipeToRun == undefined) continue
 			var time = overclockCalc(recipeToRun.Ft, bl.powerConsumption, bl.overclock, recipeToRun.time) //[0] should be time, [1] power consumption
 			if (bl.ticksRunning == 0) { //starts a recipe if it's not running
 				var itemList = {}, canRunRecipe = true
